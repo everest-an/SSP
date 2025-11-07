@@ -20,6 +20,7 @@ import AdminUsers from "./pages/admin/Users";
 import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminMerchants from "./pages/admin/AdminMerchants";
 import DevicePayment from "./pages/DevicePayment";
+import PaymentMethods from "./pages/PaymentMethods";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -38,6 +39,7 @@ function Router() {
       <Route path={"/wallets"} component={Wallets} />
       <Route path={"/face-registration"} component={FaceRegistration} />
       <Route path={"/device-payment"} component={DevicePayment} />
+      <Route path={"/payment-methods"} component={PaymentMethods} />
       <Route path={"/admin/users"} component={AdminUsers} />
       <Route path={"/admin/transactions"} component={AdminTransactions} />
       <Route path={"/admin/merchants"} component={AdminMerchants} />

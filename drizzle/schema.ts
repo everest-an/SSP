@@ -11,6 +11,7 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin", "merchant"]).default("user").notNull(),
+  stripeCustomerId: varchar("stripeCustomerId", { length: 255 }), // Stripe customer ID for payments
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -208,3 +209,32 @@ export const auditLogs = mysqlTable("auditLogs", {
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
+/**
+ * Payment Methods table - stores user payment methods
+ * Supports credit/debit cards (via Stripe) and crypto wallets (MetaMask)
+ */
+export const paymentMethods = mysqlTable("payment_methods", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // Reference to users table
+  type: mysqlEnum("type", ["card", "metamask", "custodial_wallet"]).notNull(),
+  isDefault: tinyint("isDefault").default(0).notNull(), // 1 = default, 0 = not default
+  
+  // Stripe card details
+  stripePaymentMethodId: varchar("stripePaymentMethodId", { length: 255 }),
+  stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
+  cardBrand: varchar("cardBrand", { length: 50 }), // visa, mastercard, amex, etc.
+  cardLast4: varchar("cardLast4", { length: 4 }),
+  cardExpMonth: int("cardExpMonth"),
+  cardExpYear: int("cardExpYear"),
+  
+  // Crypto wallet details
+  walletAddress: varchar("walletAddress", { length: 255 }), // Ethereum address
+  walletType: varchar("walletType", { length: 50 }), // "non_custodial" for MetaMask
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PaymentMethod = typeof paymentMethods.$inferSelect;
+export type InsertPaymentMethod = typeof paymentMethods.$inferInsert;

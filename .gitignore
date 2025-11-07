@@ -67,3 +67,4 @@ Downloads/
 
 # Drizzle
 drizzle/migrations/
+.bash_history

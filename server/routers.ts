@@ -38,6 +38,7 @@ import { stripeRouters } from "./stripeRouters";
 import { faceRecognitionRouter, walletRouter, gestureRouter, deviceProductRouter } from "./faceAndWalletRouters";
 import { adminRouter } from "./adminRouters";
 import { realtimeOrderRouter } from "./realtimeOrderRouters";
+import { paymentMethodRouter } from "./paymentMethodRouters";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -479,6 +480,9 @@ export const appRouter = router({
         return getDashboardStats(input.merchantId);
       }),
   }),
+
+  // Payment Methods
+  paymentMethod: paymentMethodRouter,
 });
 
 export type AppRouter = typeof appRouter;

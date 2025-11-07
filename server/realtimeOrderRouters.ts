@@ -37,6 +37,7 @@ import {
   getWalletById,
 } from "./faceAndWalletDb";
 import { wsService } from "./websocket";
+import { paymentMethodRouter } from "./paymentMethodRouters";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 
@@ -231,48 +232,74 @@ export const realtimeOrderRouter = router({
         let transactionId = `TXN-${nanoid(12)}`;
 
         try {
-          if (wallet.walletType === "custodial") {
-            // ===== Custodial Wallet Payment (Fiat) =====
-            console.log(`[RealtimeOrder] Processing custodial wallet payment for order ${orderNumber}`);
-            
-            // Deduct from wallet balance
-            await updateWalletBalance(wallet.id, wallet.balance - totalAmount);
-
-            // Create wallet transaction record
-            await createWalletTransaction({
-              walletId: wallet.id,
-              type: "payment",
-              amount: -totalAmount, // Negative for deduction
+          // Try to use payment method first (card or MetaMask)
+          console.log(`[RealtimeOrder] Attempting payment with default payment method for order ${orderNumber}`);
+          
+          try {
+            const paymentResult = await paymentMethodRouter.createCaller({} as any).processPayment({
+              userId,
+              amount: totalAmount,
               currency: wallet.currency,
-              status: "completed",
-              relatedOrderId: order.id,
-              description: `Payment for order ${orderNumber}`,
+              orderId: order.id,
+              description: `Order ${orderNumber}`,
             });
 
-            paymentSuccess = true;
-            console.log(`[RealtimeOrder] Custodial payment successful for order ${orderNumber}`);
-
-          } else {
-            // ===== Non-Custodial Wallet Payment (Crypto) =====
-            console.log(`[RealtimeOrder] Processing non-custodial wallet payment for order ${orderNumber}`);
+            if (paymentResult.success) {
+              if (paymentResult.pending) {
+                // MetaMask payment - pending blockchain confirmation
+                paymentSuccess = false;
+                paymentError = paymentResult.message || "Payment pending blockchain confirmation";
+                console.log(`[RealtimeOrder] Payment pending for order ${orderNumber}`);
+              } else {
+                // Card payment - successful
+                paymentSuccess = true;
+                console.log(`[RealtimeOrder] Card payment successful for order ${orderNumber}`);
+              }
+            }
+          } catch (paymentMethodError: any) {
+            // No payment method or payment method failed, fall back to wallet
+            console.log(`[RealtimeOrder] Payment method failed, falling back to wallet: ${paymentMethodError.message}`);
             
-            // TODO: Integrate with blockchain (Web3.js/ethers.js)
-            // For now, mark as pending and require manual confirmation
-            
-            // Create wallet transaction record with pending status
-            await createWalletTransaction({
-              walletId: wallet.id,
-              type: "payment",
-              amount: -totalAmount,
-              currency: wallet.currency,
-              status: "pending",
-              relatedOrderId: order.id,
-              description: `Crypto payment for order ${orderNumber} (pending blockchain confirmation)`,
-            });
+            if (wallet.walletType === "custodial") {
+              // ===== Custodial Wallet Payment (Fiat) =====
+              console.log(`[RealtimeOrder] Processing custodial wallet payment for order ${orderNumber}`);
+              
+              // Deduct from wallet balance
+              await updateWalletBalance(wallet.id, wallet.balance - totalAmount);
 
-            paymentSuccess = false;
-            paymentError = "Non-custodial wallet payment requires blockchain confirmation. Order is pending.";
-            console.log(`[RealtimeOrder] Non-custodial payment pending for order ${orderNumber}`);
+              // Create wallet transaction record
+              await createWalletTransaction({
+                walletId: wallet.id,
+                type: "payment",
+                amount: -totalAmount, // Negative for deduction
+                currency: wallet.currency,
+                status: "completed",
+                relatedOrderId: order.id,
+                description: `Payment for order ${orderNumber}`,
+              });
+
+              paymentSuccess = true;
+              console.log(`[RealtimeOrder] Custodial payment successful for order ${orderNumber}`);
+
+            } else {
+              // ===== Non-Custodial Wallet Payment (Crypto) =====
+              console.log(`[RealtimeOrder] Processing non-custodial wallet payment for order ${orderNumber}`);
+              
+              // Create wallet transaction record with pending status
+              await createWalletTransaction({
+                walletId: wallet.id,
+                type: "payment",
+                amount: -totalAmount,
+                currency: wallet.currency,
+                status: "pending",
+                relatedOrderId: order.id,
+                description: `Crypto payment for order ${orderNumber} (pending blockchain confirmation)`,
+              });
+
+              paymentSuccess = false;
+              paymentError = "Non-custodial wallet payment requires blockchain confirmation. Order is pending.";
+              console.log(`[RealtimeOrder] Non-custodial payment pending for order ${orderNumber}`);
+            }
           }
         } catch (error: any) {
           paymentError = error.message || "Payment processing failed";
