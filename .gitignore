@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.vite/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+.cache/
+
+# Database
+*.db
+*.sqlite
+
+# Local development
+.local/
+.cache/
+.config/
+.npm/
+.nvm/
+.pki/
+.secrets/
+.browser_data_dir/
+.logs/
+.user_env
+.zshrc
+.bashrc
+.bash_logout
+.profile
+
+# Project specific
+sandbox.txt
+upload/
+screenshots/
+page_texts/
+Downloads/
+
+# Drizzle
+drizzle/migrations/
