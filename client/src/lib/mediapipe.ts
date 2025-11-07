@@ -153,6 +153,70 @@ export class GestureRecognitionService {
   }
 
   /**
+   * Detect thumbs up 👍 gesture for payment confirmation
+   */
+  detectThumbsUpGesture(results: any): {
+    detected: boolean;
+    confidence: number;
+    handPosition?: { x: number; y: number; z: number };
+  } {
+    if (!results.landmarks || results.landmarks.length === 0) {
+      return { detected: false, confidence: 0 };
+    }
+
+    const handLandmarks = results.landmarks[0];
+    
+    // Calculate hand center
+    const palmCenter = {
+      x: handLandmarks[0].x,
+      y: handLandmarks[0].y,
+      z: handLandmarks[0].z,
+    };
+
+    // Check for thumbs up gesture from MediaPipe
+    let gestureConfidence = 0;
+    if (results.gestures && results.gestures.length > 0) {
+      const gesture = results.gestures[0][0];
+      if (gesture.categoryName === "Thumb_Up") {
+        gestureConfidence = gesture.score;
+      }
+    }
+
+    // Manual check for thumbs up: thumb extended, other fingers curled
+    const thumbUp = this.isThumbUp(handLandmarks);
+    const confidence = Math.max(thumbUp ? 0.85 : 0, gestureConfidence);
+
+    return {
+      detected: confidence > 0.7,
+      confidence,
+      handPosition: palmCenter,
+    };
+  }
+
+  /**
+   * Check if thumb is up (extended upward)
+   */
+  private isThumbUp(landmarks: any[]): boolean {
+    // Thumb tip (4) should be higher than thumb base (2)
+    const thumbTip = landmarks[4];
+    const thumbBase = landmarks[2];
+    const thumbExtended = thumbTip.y < thumbBase.y - 0.05;
+
+    // Other fingers should be curled
+    const palmY = landmarks[0].y;
+    const fingertipIndices = [8, 12, 16, 20]; // Index, middle, ring, pinky tips
+    
+    let curledCount = 0;
+    fingertipIndices.forEach((idx) => {
+      if (landmarks[idx].y > palmY - 0.05) {
+        curledCount++;
+      }
+    });
+
+    return thumbExtended && curledCount >= 3;
+  }
+
+  /**
    * Detect "YES" gesture (pick up action)
    * Based on hand position and movement
    */

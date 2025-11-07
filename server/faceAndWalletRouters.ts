@@ -30,6 +30,31 @@ const stripe = new Stripe(ENV.stripeSecretKey, {
   apiVersion: "2025-10-29.clover",
 });
 
+/**
+ * Calculate cosine similarity between two vectors
+ * Used for face recognition matching
+ */
+function cosineSimilarity(vec1: number[], vec2: number[]): number {
+  if (vec1.length !== vec2.length) {
+    return 0;
+  }
+
+  let dotProduct = 0;
+  let norm1 = 0;
+  let norm2 = 0;
+
+  for (let i = 0; i < vec1.length; i++) {
+    dotProduct += vec1[i] * vec2[i];
+    norm1 += vec1[i] * vec1[i];
+    norm2 += vec2[i] * vec2[i];
+  }
+
+  const magnitude = Math.sqrt(norm1) * Math.sqrt(norm2);
+  if (magnitude === 0) return 0;
+
+  return dotProduct / magnitude;
+}
+
 export const faceRecognitionRouter = router({
   // Register face recognition for a user
   register: protectedProcedure
@@ -137,18 +162,77 @@ export const faceRecognitionRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      // In production, use a proper face recognition algorithm
-      // For now, this is a simplified version
-      // You should implement cosine similarity or other distance metrics
+      // Get all active face recognitions
+      const { getDb } = await import("./db");
+      const { faceRecognition, users } = await import("../drizzle/schema");
+      const { eq, and } = await import("drizzle-orm");
+      
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Database not available",
+        });
+      }
 
-      // This endpoint should be called by devices to identify users
-      // Return user ID and payment info if face matches
+      const allFaceRecs = await db
+        .select()
+        .from(faceRecognition)
+        .where(eq(faceRecognition.isActive, 1));
+
+      // Find best match using cosine similarity
+      let bestMatch = null;
+      let bestSimilarity = 0;
+
+      for (const faceRec of allFaceRecs) {
+        const storedEmbedding = JSON.parse(faceRec.faceEmbedding);
+        const similarity = cosineSimilarity(input.faceEmbedding, storedEmbedding);
+
+        if (similarity > bestSimilarity && similarity >= input.threshold) {
+          bestSimilarity = similarity;
+          bestMatch = faceRec;
+        }
+      }
+
+      if (!bestMatch) {
+        return {
+          verified: false,
+          user: null,
+          wallet: null,
+          faceEmbedding: input.faceEmbedding,
+          similarity: 0,
+        };
+      }
+
+      // Get user info
+      const user = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, bestMatch.userId))
+        .limit(1);
+
+      if (!user || user.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found",
+        });
+      }
+
+      // Get default wallet
+      const { getDefaultWalletByUserId } = await import("./faceAndWalletDb");
+      const wallet = await getDefaultWalletByUserId(bestMatch.userId);
+
+      // Update last used timestamp
+      await updateFaceRecognition(bestMatch.id, {
+        lastUsedAt: new Date(),
+      });
 
       return {
-        matched: false,
-        userId: null,
-        stripeCustomerId: null,
-        maxPaymentAmount: 0,
+        verified: true,
+        user: user[0],
+        wallet: wallet || null,
+        faceEmbedding: input.faceEmbedding,
+        similarity: bestSimilarity,
       };
     }),
 });
