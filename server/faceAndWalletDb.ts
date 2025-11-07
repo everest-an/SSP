@@ -85,7 +85,7 @@ export async function getWalletById(id: number): Promise<Wallet | undefined> {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function getDefaultWallet(userId: number): Promise<Wallet | undefined> {
+export async function getDefaultWalletByUserId(userId: number): Promise<Wallet | undefined> {
   const db = await getDb();
   if (!db) return undefined;
 

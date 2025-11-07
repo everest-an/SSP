@@ -37,6 +37,7 @@ import { TRPCError } from "@trpc/server";
 import { stripeRouters } from "./stripeRouters";
 import { faceRecognitionRouter, walletRouter, gestureRouter, deviceProductRouter } from "./faceAndWalletRouters";
 import { adminRouter } from "./adminRouters";
+import { realtimeOrderRouter } from "./realtimeOrderRouters";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -62,6 +63,7 @@ export const appRouter = router({
   gesture: gestureRouter,
   deviceProduct: deviceProductRouter,
   admin: adminRouter,
+  realtimeOrder: realtimeOrderRouter,
   
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
