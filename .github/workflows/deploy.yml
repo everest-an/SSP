@@ -1,0 +1,42 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-2
+      
+      - name: Deploy to EC2 via SSM
+        run: |
+          aws ssm send-command \
+            --instance-ids "i-0d53f47830e65988e" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "cd /home/ec2-user/SSP || cd ~/SSP",
+              "git pull origin main",
+              "export VITE_OAUTH_PORTAL_URL=https://ap-southeast-2q83puda94.auth.ap-southeast-2.amazoncognito.com",
+              "export VITE_APP_ID=3vdjmnldb67uu2jnuqt3uhaqth",
+              "export VITE_APP_TITLE=\"SSP - Smart Store Payment\"",
+              "pnpm install || npm install",
+              "pnpm run build || npm run build",
+              "pm2 restart ssp || pm2 start npm --name ssp -- start"
+            ]' \
+            --region ap-southeast-2
+      
+      - name: Deployment completed
+        run: echo "✅ Deployment to EC2 completed successfully!"
