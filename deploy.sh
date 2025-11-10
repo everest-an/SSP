@@ -16,12 +16,10 @@ REGION="ap-southeast-2"
 USER_POOL_ID=$(aws cognito-idp list-user-pools --max-results 10 --region $REGION --query "UserPools[?Name=='User pool - aua8rd'].Id" --output text 2>/dev/null || echo "")
 
 if [ -z "$USER_POOL_ID" ]; then
-    echo "⚠️  警告: 无法自动获取User Pool ID"
-    echo "请手动从AWS控制台获取并在.env文件中配置"
-    USER_POOL_ID="ap-southeast-2_XXXXXXXXX"
-else
-    echo "✅ User Pool ID: $USER_POOL_ID"
+    echo "⚠️  警告: 无法自动获取User Pool ID,使用预配置的ID"
+    USER_POOL_ID="ap-southeast-2_q83pUDA94"
 fi
+echo "✅ User Pool ID: $USER_POOL_ID"
 
 # 2. 进入项目目录
 echo ""
