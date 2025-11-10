@@ -1,0 +1,125 @@
+# SSP一键部署命令
+
+## 完整配置信息
+
+### Cognito OAuth配置
+- **User Pool ID**: ap-southeast-2_q83pUDA94
+- **App Client ID**: 3vdjmnldb67uu2jnuqt3uhaqth  
+- **OAuth Portal URL**: https://ap-southeast-2q83puda94.auth.ap-southeast-2.amazoncognito.com
+- **Cognito Domain**: ap-southeast-2q83puda94.auth.ap-southeast-2.amazoncognito.com
+- **Region**: ap-southeast-2
+- **Callback URL**: https://ssp.click/api/oauth/callback
+
+### 服务器信息
+- **Public IP**: 3.25.163.9
+- **Instance ID**: i-0d53f47830e65988e
+- **SSH Key**: ssp-key.pem
+- **User**: ec2-user
+
+---
+
+## 方式1: 一键部署(推荐)
+
+SSH连接服务器后,复制粘贴以下命令并回车:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/everest-an/SSP/main/deploy.sh | bash
+```
+
+---
+
+## 方式2: 分步部署
+
+### 步骤1: SSH连接服务器
+```bash
+ssh -i ssp-key.pem ec2-user@3.25.163.9
+```
+
+### 步骤2: 下载部署脚本
+```bash
+cd ~
+wget https://raw.githubusercontent.com/everest-an/SSP/main/deploy.sh
+chmod +x deploy.sh
+```
+
+### 步骤3: 运行部署脚本
+```bash
+./deploy.sh
+```
+
+---
+
+## 方式3: 完全手动部署
+
+```bash
+# 1. 进入项目目录
+cd ~/SSP || cd /home/ec2-user/SSP
+
+# 2. 拉取最新代码
+git pull origin main
+
+# 3. 创建.env文件
+cat > .env << 'EOF'
+VITE_OAUTH_PORTAL_URL=https://ap-southeast-2q83puda94.auth.ap-southeast-2.amazoncognito.com
+VITE_APP_ID=3vdjmnldb67uu2jnuqt3uhaqth
+VITE_APP_TITLE=SSP - Smart Store Payment
+COGNITO_USER_POOL_ID=ap-southeast-2_q83pUDA94
+COGNITO_REGION=ap-southeast-2
+COGNITO_DOMAIN=ap-southeast-2q83puda94.auth.ap-southeast-2.amazoncognito.com
+DATABASE_URL=postgresql://user:password@localhost:5432/ssp
+REDIS_URL=redis://localhost:6379
+PORT=3000
+NODE_ENV=production
+EOF
+
+# 4. 安装依赖
+pnpm install
+
+# 5. 构建项目(重要!)
+pnpm run build
+
+# 6. 重启服务
+pm2 restart ssp
+# 或首次启动
+pm2 start npm --name "ssp" -- start
+pm2 save
+```
+
+---
+
+## 部署后验证
+
+1. 访问: https://ssp.click
+2. 点击"Sign In"按钮
+3. 应该跳转到Cognito登录页面
+4. 使用邮箱注册/登录测试
+
+---
+
+## 故障排查
+
+### 登录跳转404
+```bash
+cd ~/SSP
+pnpm run build  # 必须重新构建
+pm2 restart ssp
+```
+
+### 查看日志
+```bash
+pm2 logs ssp
+```
+
+### 检查服务状态
+```bash
+pm2 status
+```
+
+---
+
+## 注意事项
+
+1. ✅ User Pool ID已配置: `ap-southeast-2_q83pUDA94`
+2. ✅ 所有OAuth配置已完成
+3. ⚠️ 修改`VITE_`开头的环境变量后必须运行`pnpm run build`
+4. ⚠️ 确保数据库和Redis配置正确
