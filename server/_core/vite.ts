@@ -58,13 +58,21 @@ export function serveStatic(app: Express) {
     );
   }
 
-  // Serve static files ONLY for non-API routes using regex
-  // This prevents express.static from intercepting /api/* requests
-  app.use(/^(?!\/api\/).*/, express.static(distPath));
-
-  // Fall back to index.html for non-API routes
-  app.use(/^(?!\/api\/).*/, (req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  // Conditional static file serving - skip API routes entirely
+  app.use((req, res, next) => {
+    // Skip this middleware for API routes
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+    
+    // Try to serve static file
+    const staticHandler = express.static(distPath);
+    staticHandler(req, res, (err: any) => {
+      if (err) return next(err);
+      
+      // If static file not found, serve index.html
+      res.sendFile(path.resolve(distPath, "index.html"));
+    });
   });
   
   // 404 handler for unmatched API routes
