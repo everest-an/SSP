@@ -4,7 +4,6 @@ import axios from "axios";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
-import { ENV } from "./env";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -20,7 +19,7 @@ interface CognitoTokenResponse {
 }
 
 interface CognitoUserInfo {
-  sub: string; // Cognito user ID
+  sub: string;
   email?: string;
   email_verified?: boolean;
   name?: string;
@@ -37,26 +36,14 @@ export function registerCognitoOAuthRoutes(app: Express) {
     }
 
     try {
-      // Check if using Cognito (based on OAuth portal URL)
-      const isCognito = ENV.oAuthServerUrl?.includes("amazoncognito.com") || 
-                        process.env.VITE_OAUTH_PORTAL_URL?.includes("amazoncognito.com");
-      
-      console.log("[OAuth] ENV.oAuthServerUrl:", ENV.oAuthServerUrl);
-      console.log("[OAuth] VITE_OAUTH_PORTAL_URL:", process.env.VITE_OAUTH_PORTAL_URL);
-      console.log("[OAuth] isCognito:", isCognito);
-
-      if (isCognito) {
-        // AWS Cognito OAuth flow
-        console.log("[OAuth] Using Cognito OAuth flow");
-        await handleCognitoCallback(req, res, code, state);
-      } else {
-        // Manus OAuth flow (original logic)
-        console.log("[OAuth] Using Manus OAuth flow");
-        await handleManusCallback(req, res, code, state);
-      }
+      console.log("[OAuth] Using Cognito OAuth flow");
+      await handleCognitoCallback(req, res, code, state);
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
-      res.status(500).json({ error: "OAuth callback failed" });
+      res.status(500).json({ 
+        error: "OAuth callback failed",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 }
@@ -68,11 +55,15 @@ async function handleCognitoCallback(
   state: string
 ) {
   const redirectUri = atob(state);
-  const cognitoDomain = ENV.oAuthServerUrl;
-  const clientId = ENV.appId;
+  const cognitoDomain = process.env.VITE_OAUTH_PORTAL_URL || "https://ap-southeast-2q83puda94.auth.ap-southeast-2.amazoncognito.com";
+  const clientId = process.env.VITE_APP_ID || "3vdjmnldb67uu2jnuqt3uhaqth";
+
+  console.log("[OAuth] Cognito domain:", cognitoDomain);
+  console.log("[OAuth] Client ID:", clientId);
+  console.log("[OAuth] Redirect URI:", redirectUri);
 
   // Exchange code for tokens
-  const tokenUrl = `${cognitoDomain}/oauth2/token`;
+  const tokenUrl = cognitoDomain + "/oauth2/token";
   const tokenResponse = await axios.post<CognitoTokenResponse>(
     tokenUrl,
     new URLSearchParams({
@@ -88,18 +79,21 @@ async function handleCognitoCallback(
     }
   );
 
-  const { access_token, id_token } = tokenResponse.data;
+  const { access_token } = tokenResponse.data;
+  console.log("[OAuth] Token exchange successful");
 
   // Get user info
-  const userInfoUrl = `${cognitoDomain}/oauth2/userInfo`;
+  const userInfoUrl = cognitoDomain + "/oauth2/userInfo";
   const userInfoResponse = await axios.get<CognitoUserInfo>(userInfoUrl, {
     headers: {
-      Authorization: `Bearer ${access_token}`,
+      Authorization: "Bearer " + access_token,
     },
   });
 
   const userInfo = userInfoResponse.data;
-  const openId = `cognito:${userInfo.sub}`;
+  const openId = "cognito:" + userInfo.sub;
+
+  console.log("[OAuth] User info retrieved:", { openId, email: userInfo.email });
 
   // Upsert user in database
   await db.upsertUser({
@@ -119,40 +113,8 @@ async function handleCognitoCallback(
   const cookieOptions = getSessionCookieOptions(req);
   res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-  // Redirect to dashboard instead of home
-  res.redirect(302, "/dashboard");
-}
-
-async function handleManusCallback(
-  req: Request,
-  res: Response,
-  code: string,
-  state: string
-) {
-  const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-  const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-
-  if (!userInfo.openId) {
-    res.status(400).json({ error: "openId missing from user info" });
-    return;
-  }
-
-  await db.upsertUser({
-    openId: userInfo.openId,
-    name: userInfo.name || null,
-    email: userInfo.email ?? null,
-    loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
-    lastSignedIn: new Date(),
-  });
-
-  const sessionToken = await sdk.createSessionToken(userInfo.openId, {
-    name: userInfo.name || "",
-    expiresInMs: ONE_YEAR_MS,
-  });
-
-  const cookieOptions = getSessionCookieOptions(req);
-  res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-
-  // Redirect to dashboard instead of home
+  console.log("[OAuth] Login successful, redirecting to /dashboard");
+  
+  // Redirect to dashboard
   res.redirect(302, "/dashboard");
 }
