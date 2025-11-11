@@ -19,9 +19,15 @@ import {
   validateActiveLiveness,
   validatePassiveLiveness,
   validateHybridLiveness,
-  getRecommendedLivenessMethod,
+  getRecommendedLivenessMethod as getRecommendedLivenessMethodLocal,
   type LivenessMethod,
 } from "../services/livenessDetection";
+import {
+  createLivenessSession,
+  getLivenessSessionResults,
+  isLivenessResultValid,
+  getRecommendedLivenessMethod as getRecommendedLivenessMethodRekognition,
+} from "../services/rekognitionLiveness";
 import { db } from "../_core/db";
 import { faceVerificationAttempts, userSecuritySettings } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -387,5 +393,54 @@ export const faceAuthRouter = router({
         createdAt: a.createdAt,
         // Omit sensitive fields like IP address, user agent
       }));
+    }),
+
+  /**
+   * Create AWS Rekognition Face Liveness session
+   * 
+   * Returns a session ID that can be used with AWS Amplify UI Liveness component
+   */
+  createRekognitionLivenessSession: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const userId = ctx.user.id;
+
+      try {
+        const { sessionId } = await createLivenessSession(userId);
+
+        return {
+          sessionId,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create liveness session",
+        });
+      }
+    }),
+
+  /**
+   * Get Rekognition Face Liveness session results
+   * 
+   * Check if the liveness session has completed and get the results
+   */
+  getRekognitionLivenessResult: protectedProcedure
+    .input(z.object({
+      sessionId: z.string(),
+    }))
+    .query(async ({ input }) => {
+      try {
+        const result = await getLivenessSessionResults(input.sessionId);
+
+        return {
+          ...result,
+          isValid: isLivenessResultValid(result),
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to get liveness results",
+        });
+      }
     }),
 });
