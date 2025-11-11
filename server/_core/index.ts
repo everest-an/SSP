@@ -11,6 +11,7 @@ import { stripeRouter } from "../stripe";
 import adminRouter from "../routes/admin";
 import privacyRouter from "../routes/privacy";
 import paymentRouter from "../routes/payment";
+import debugRouter from "../routes/debug";
 import { wsService } from "../websocket";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -43,6 +44,9 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  
+  // Debug routes (first for troubleshooting)
+  app.use("/api/debug", debugRouter);
   
   // Sprint 4: Admin, Privacy, and Payment routes (after body parser)
   app.use("/api/admin", adminRouter);
