@@ -4,9 +4,9 @@ import { ENV } from "./_core/env";
 import { getProductByPriceId } from "./products";
 import { createTransaction, createOrder, createOrderItem, updateOrder } from "./db";
 
-const stripe = new Stripe(ENV.stripeSecretKey, {
+const stripe = ENV.stripeSecretKey ? new Stripe(ENV.stripeSecretKey, {
   apiVersion: "2025-10-29.clover",
-});
+}) : null;
 
 export const stripeRouter = express.Router();
 

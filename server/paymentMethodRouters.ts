@@ -19,9 +19,9 @@ import { getDb } from "./db";
 import { users, paymentMethods } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 
-const stripe = new Stripe(ENV.stripeSecretKey, {
+const stripe = ENV.stripeSecretKey ? new Stripe(ENV.stripeSecretKey, {
   apiVersion: "2025-10-29.clover",
-});
+}) : null;
 
 /**
  * Payment method types

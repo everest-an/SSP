@@ -26,9 +26,9 @@ import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { ENV } from "./_core/env";
 
-const stripe = new Stripe(ENV.stripeSecretKey, {
+const stripe = ENV.stripeSecretKey ? new Stripe(ENV.stripeSecretKey, {
   apiVersion: "2025-10-29.clover",
-});
+}) : null;
 
 /**
  * Calculate cosine similarity between two vectors
