@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { useCamera } from '@/hooks/useCamera';
 import { createFaceMesh, captureBestFrame, type FaceEmbeddingResult } from '@/services/faceDetection';
 import { FaceMesh } from '@mediapipe/face_mesh';
@@ -25,7 +25,7 @@ import { Camera, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 type EnrollmentStep = 'intro' | 'camera_setup' | 'liveness_challenges' | 'capturing' | 'processing' | 'success' | 'error';
 
 export function FaceEnrollment() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const [step, setStep] = useState<EnrollmentStep>('intro');
   const [challenges, setChallenges] = useState<LivenessChallengeType[]>([]);
   const [currentChallengeIndex, setCurrentChallengeIndex] = useState(0);
@@ -137,7 +137,7 @@ export function FaceEnrollment() {
 
         // Redirect to dashboard after 3 seconds
         setTimeout(() => {
-          navigate('/dashboard');
+          setLocation('/dashboard');
         }, 3000);
       }
     } catch (err) {
@@ -374,7 +374,7 @@ export function FaceEnrollment() {
                   <Button onClick={handleRetry} className="flex-1">
                     Try Again
                   </Button>
-                  <Button onClick={() => navigate('/dashboard')} variant="outline" className="flex-1">
+                  <Button onClick={() => setLocation('/dashboard')} variant="outline" className="flex-1">
                     Cancel
                   </Button>
                 </div>
