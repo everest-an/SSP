@@ -8,6 +8,9 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { stripeRouter } from "../stripe";
+import adminRouter from "../routes/admin";
+import privacyRouter from "../routes/privacy";
+import paymentRouter from "../routes/payment";
 import { wsService } from "../websocket";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -36,6 +39,11 @@ async function startServer() {
   // IMPORTANT: Stripe webhook must be registered BEFORE express.json()
   // because it needs the raw body for signature verification
   app.use("/api", stripeRouter);
+  
+  // Sprint 4: Admin, Privacy, and Payment routes
+  app.use("/api/admin", adminRouter);
+  app.use("/api/privacy", privacyRouter);
+  app.use("/api/payment", paymentRouter);
   
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
