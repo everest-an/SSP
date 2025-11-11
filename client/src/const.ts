@@ -19,7 +19,7 @@ export const getLoginUrl = () => {
     const url = new URL(`${oauthPortalUrl}/oauth2/authorize`);
     url.searchParams.set("client_id", appId);
     url.searchParams.set("response_type", "code");
-    url.searchParams.set("scope", "email openid profile");
+    url.searchParams.set("scope", "openid");
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("state", state);
     return url.toString();
