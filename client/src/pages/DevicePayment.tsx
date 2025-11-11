@@ -9,6 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { Camera, CheckCircle, XCircle, Loader2, ThumbsUp, User, Wallet, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { FacePaymentConfirm } from "@/components/FacePaymentConfirm";
 
 type PaymentStep = "idle" | "face_detection" | "product_selection" | "gesture_confirmation" | "processing" | "completed" | "failed";
 
@@ -46,6 +47,7 @@ export default function DevicePayment() {
   const [gestureConfidence, setGestureConfidence] = useState(0);
   
   const [selectedProduct, setSelectedProduct] = useState<SelectedProduct | null>(null);
+  const [showFacePaymentConfirm, setShowFacePaymentConfirm] = useState(false);
   const [deviceId] = useState(1); // In production, get from device config
   const [merchantId] = useState(1); // In production, get from device config
 
@@ -265,6 +267,13 @@ export default function DevicePayment() {
   };
 
   const processPayment = () => {
+    if (!detectedUser || !selectedProduct) return;
+
+    // Show face payment confirmation modal
+    setShowFacePaymentConfirm(true);
+  };
+
+  const handlePaymentConfirmed = () => {
     if (!detectedUser || !selectedProduct) return;
 
     setCurrentStep("processing");
@@ -535,6 +544,20 @@ export default function DevicePayment() {
           </div>
         </div>
       </div>
+
+      {/* Face Payment Confirmation Modal */}
+      <FacePaymentConfirm
+        open={showFacePaymentConfirm}
+        onOpenChange={setShowFacePaymentConfirm}
+        amount={selectedProduct?.price || 0}
+        currency={selectedProduct?.currency || "USD"}
+        merchantName="SSP Store"
+        onConfirm={handlePaymentConfirmed}
+        onCancel={() => {
+          setShowFacePaymentConfirm(false);
+          toast.info("Payment cancelled");
+        }}
+      />
     </div>
   );
 }
