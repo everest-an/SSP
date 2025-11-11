@@ -57,6 +57,7 @@ async function handleCognitoCallback(
   const redirectUri = atob(state);
   const cognitoDomain = process.env.VITE_OAUTH_PORTAL_URL || "https://ap-southeast-2q83puda94.auth.ap-southeast-2.amazoncognito.com";
   const clientId = process.env.VITE_APP_ID || "3vdjmnldb67uu2jnuqt3uhaqth";
+  const clientSecret = process.env.COGNITO_CLIENT_SECRET || "";
 
   console.log("[OAuth] Cognito domain:", cognitoDomain);
   console.log("[OAuth] Client ID:", clientId);
@@ -69,6 +70,7 @@ async function handleCognitoCallback(
     new URLSearchParams({
       grant_type: "authorization_code",
       client_id: clientId,
+      client_secret: clientSecret,
       code,
       redirect_uri: redirectUri,
     }).toString(),
