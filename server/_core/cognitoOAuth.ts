@@ -38,13 +38,20 @@ export function registerCognitoOAuthRoutes(app: Express) {
 
     try {
       // Check if using Cognito (based on OAuth portal URL)
-      const isCognito = ENV.oAuthServerUrl?.includes("amazoncognito.com");
+      const isCognito = ENV.oAuthServerUrl?.includes("amazoncognito.com") || 
+                        process.env.VITE_OAUTH_PORTAL_URL?.includes("amazoncognito.com");
+      
+      console.log("[OAuth] ENV.oAuthServerUrl:", ENV.oAuthServerUrl);
+      console.log("[OAuth] VITE_OAUTH_PORTAL_URL:", process.env.VITE_OAUTH_PORTAL_URL);
+      console.log("[OAuth] isCognito:", isCognito);
 
       if (isCognito) {
         // AWS Cognito OAuth flow
+        console.log("[OAuth] Using Cognito OAuth flow");
         await handleCognitoCallback(req, res, code, state);
       } else {
         // Manus OAuth flow (original logic)
+        console.log("[OAuth] Using Manus OAuth flow");
         await handleManusCallback(req, res, code, state);
       }
     } catch (error) {
