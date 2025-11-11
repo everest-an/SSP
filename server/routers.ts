@@ -36,6 +36,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { stripeRouters } from "./stripeRouters";
 import { faceRecognitionRouter, walletRouter, gestureRouter, deviceProductRouter } from "./faceAndWalletRouters";
+import { faceAuthRouter } from "./routes/faceAuth";
 import { adminRouter } from "./adminRouters";
 import { realtimeOrderRouter } from "./realtimeOrderRouters";
 import { paymentMethodRouter } from "./paymentMethodRouters";
@@ -60,6 +61,7 @@ export const appRouter = router({
   system: systemRouter,
   stripe: stripeRouters,
   faceRecognition: faceRecognitionRouter,
+  faceAuth: faceAuthRouter,
   wallet: walletRouter,
   gesture: gestureRouter,
   deviceProduct: deviceProductRouter,
