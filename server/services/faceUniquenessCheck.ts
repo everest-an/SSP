@@ -11,7 +11,7 @@
  * Future: Integrate with vector database for scalability
  */
 
-import { db } from "../db";
+import { db } from "../_core/db";
 import { faceProfiles, faceVerificationAttempts } from "../../drizzle/schema";
 import { decryptFaceEmbedding } from "./kmsEncryption";
 import { eq } from "drizzle-orm";

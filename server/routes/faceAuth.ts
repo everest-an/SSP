@@ -10,7 +10,7 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure, publicProcedure } from "../trpc";
+import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
 import { storeFaceEmbedding, getUserFaceEmbeddings, revokeFaceProfile, userHasFaceProfile } from "../services/faceEmbeddingStorage";
 import { checkFaceUniqueness, findSimilarFaces } from "../services/faceUniquenessCheck";
 import { 
@@ -22,7 +22,7 @@ import {
   getRecommendedLivenessMethod,
   type LivenessMethod,
 } from "../services/livenessDetection";
-import { db } from "../db";
+import { db } from "../_core/db";
 import { faceVerificationAttempts, userSecuritySettings } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 
