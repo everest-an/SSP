@@ -50,9 +50,17 @@ export default function Home() {
                   </Link>
                 </>
               ) : (
-                <Button asChild variant="default">
-                  <a href={getLoginUrl()}>Sign In</a>
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Link href="/face-login">
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <Eye className="h-4 w-4" />
+                      Face Login
+                    </Button>
+                  </Link>
+                  <Button asChild variant="default">
+                    <a href={getLoginUrl()}>Sign In</a>
+                  </Button>
+                </div>
               )}
             </div>
           </div>

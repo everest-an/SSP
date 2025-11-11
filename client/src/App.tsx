@@ -17,6 +17,7 @@ import Pricing from "./pages/Pricing";
 import Wallets from "./pages/Wallets";
 import FaceRegistration from "./pages/FaceRegistration";
 import { FaceEnrollment } from "./pages/FaceEnrollment";
+import { FaceLogin } from "./pages/FaceLogin";
 import AdminUsers from "./pages/admin/Users";
 import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminMerchants from "./pages/admin/AdminMerchants";
@@ -40,6 +41,7 @@ function Router() {
       <Route path={"/wallets"} component={Wallets} />
       <Route path={"/face-registration"} component={FaceRegistration} />
       <Route path={"/face-enrollment"} component={FaceEnrollment} />
+      <Route path={"/face-login"} component={FaceLogin} />
       <Route path={"/device-payment"} component={DevicePayment} />
       <Route path={"/payment-methods"} component={PaymentMethods} />
       <Route path={"/admin/users"} component={AdminUsers} />
