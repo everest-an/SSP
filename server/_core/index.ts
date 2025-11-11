@@ -40,14 +40,14 @@ async function startServer() {
   // because it needs the raw body for signature verification
   app.use("/api", stripeRouter);
   
-  // Sprint 4: Admin, Privacy, and Payment routes
-  app.use("/api/admin", adminRouter);
-  app.use("/api/privacy", privacyRouter);
-  app.use("/api/payment", paymentRouter);
-  
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  
+  // Sprint 4: Admin, Privacy, and Payment routes (after body parser)
+  app.use("/api/admin", adminRouter);
+  app.use("/api/privacy", privacyRouter);
+  app.use("/api/payment", paymentRouter);
   // OAuth callback under /api/oauth/callback
   registerCognitoOAuthRoutes(app);
   // tRPC API
