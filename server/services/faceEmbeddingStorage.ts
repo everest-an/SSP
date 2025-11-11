@@ -11,7 +11,7 @@
  * - Maintains audit trail
  */
 
-import { db } from "../_core/db";
+import { db } from "../db";
 import { faceProfiles, faceIndexMap, auditLogs } from "../../drizzle/schema";
 import { encryptFaceEmbedding, decryptFaceEmbedding } from "./kmsEncryption";
 import { eq, and } from "drizzle-orm";

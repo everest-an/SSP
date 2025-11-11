@@ -28,7 +28,7 @@ import {
   isLivenessResultValid,
   getRecommendedLivenessMethod as getRecommendedLivenessMethodRekognition,
 } from "../services/rekognitionLiveness";
-import { db } from "../_core/db";
+import { db } from "../db";
 import { faceVerificationAttempts, userSecuritySettings } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 
