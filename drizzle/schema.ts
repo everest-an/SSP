@@ -341,3 +341,9 @@ export type InsertUserSecuritySettings = typeof userSecuritySettings.$inferInser
 
 // Sprint 3: Export security-related tables
 export * from './schema_security';
+
+// Sprint 3.5: Export payment-related tables
+export * from './schema_payment';
+
+// Sprint 4: Export privacy and review tables
+export * from './schema_privacy';
