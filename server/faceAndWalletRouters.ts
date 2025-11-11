@@ -8,7 +8,7 @@ import {
   createWallet,
   getWalletsByUserId,
   getWalletById,
-  getDefaultWallet,
+  getDefaultWalletByUserId,
   updateWallet,
   updateWalletBalance,
   createWalletTransaction,
@@ -279,7 +279,7 @@ export const walletRouter = router({
 
   // Get default wallet
   getDefault: protectedProcedure.query(async ({ ctx }) => {
-    return getDefaultWallet(ctx.user.id);
+    return getDefaultWalletByUserId(ctx.user.id);
   }),
 
   // Get wallet by ID
