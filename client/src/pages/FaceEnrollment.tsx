@@ -11,6 +11,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'wouter';
 import { useCamera } from '@/hooks/useCamera';
+import { createFaceMesh, captureBestFrame, type FaceEmbeddingResult } from '@/services/faceDetection';
+import { FaceMesh } from '@mediapipe/face_mesh';
 import { LivenessChallenge as LivenessChallengeType } from '@/components/LivenessChallenge';
 import { LivenessChallenge } from '@/components/LivenessChallenge';
 import { Button } from '@/components/ui/button';
@@ -31,9 +33,23 @@ export function FaceEnrollment() {
   const [error, setError] = useState<string | null>(null);
 
   const { videoRef, isStreaming, error: cameraError, startCamera, stopCamera, captureFrames } = useCamera();
+  const [faceMesh, setFaceMesh] = useState<FaceMesh | null>(null);
 
   const generateChallengesMutation = trpc.faceAuth.generateLivenessChallenges.useMutation();
   const enrollFaceMutation = trpc.faceAuth.enrollFace.useMutation();
+
+  // Initialize MediaPipe Face Mesh
+  useEffect(() => {
+    const mesh = createFaceMesh((results) => {
+      // Results will be processed in captureBestFrame
+    });
+    setFaceMesh(mesh);
+
+    return () => {
+      // Cleanup
+      mesh.close();
+    };
+  }, []);
 
   // Generate liveness challenges
   const handleGenerateChallenges = async () => {
@@ -94,15 +110,24 @@ export function FaceEnrollment() {
   // Enroll face with backend
   const handleEnrollFace = async (frames: string[]) => {
     try {
-      // TODO: Generate face embedding from frames
-      // For now, using mock embedding
-      const mockEmbedding = Array(128).fill(0).map(() => Math.random());
+      // Generate real face embedding using MediaPipe
+      if (!faceMesh || !videoRef.current) {
+        throw new Error('Face detection not initialized');
+      }
+
+      const embeddingResult = await captureBestFrame(faceMesh, videoRef.current, 5, 128);
+      
+      if (!embeddingResult) {
+        throw new Error('Failed to generate face embedding. Please ensure your face is clearly visible.');
+      }
+
+      const embedding = embeddingResult.embedding;
 
       const result = await enrollFaceMutation.mutateAsync({
-        embedding: mockEmbedding,
+        embedding: embedding,
         videoFrames: frames,
         challenges: challenges,
-        enrollmentQuality: 0.95,
+        enrollmentQuality: embeddingResult.quality,
         deviceFingerprint: navigator.userAgent,
       });
 
