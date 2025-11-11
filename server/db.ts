@@ -33,7 +33,20 @@ import {
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
+// Initialize database connection synchronously for imports
 let _db: ReturnType<typeof drizzle> | null = null;
+
+if (process.env.DATABASE_URL) {
+  try {
+    _db = drizzle(process.env.DATABASE_URL);
+  } catch (error) {
+    console.warn("[Database] Failed to connect:", error);
+    _db = null;
+  }
+}
+
+// Export db for synchronous imports (used by facial auth services)
+export const db = _db!;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
