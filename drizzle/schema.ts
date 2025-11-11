@@ -192,23 +192,8 @@ export const analytics = mysqlTable("analytics", {
 export type Analytics = typeof analytics.$inferSelect;
 export type InsertAnalytics = typeof analytics.$inferInsert;
 
-/**
- * Audit logs table - stores system audit trail
- */
-export const auditLogs = mysqlTable("auditLogs", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId"),
-  action: varchar("action", { length: 100 }).notNull(), // e.g., "create_product", "update_order"
-  entityType: varchar("entityType", { length: 50 }).notNull(), // e.g., "product", "order"
-  entityId: int("entityId"),
-  changes: text("changes"), // JSON string of changes
-  ipAddress: varchar("ipAddress", { length: 45 }),
-  userAgent: text("userAgent"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-export type AuditLog = typeof auditLogs.$inferSelect;
-export type InsertAuditLog = typeof auditLogs.$inferInsert;
+// Audit logs moved to schema_security.ts (Sprint 3 enhanced version)
+// Import from schema_security.ts if needed
 
 /**
  * Payment Methods table - stores user payment methods
@@ -353,3 +338,6 @@ export const userSecuritySettings = mysqlTable("user_security_settings", {
 
 export type UserSecuritySettings = typeof userSecuritySettings.$inferSelect;
 export type InsertUserSecuritySettings = typeof userSecuritySettings.$inferInsert;
+
+// Sprint 3: Export security-related tables
+export * from './schema_security';
