@@ -9,7 +9,9 @@ import { trpc } from "@/lib/trpc";
 import { Camera, CheckCircle, XCircle, Loader2, ThumbsUp, User, Wallet, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { useMetaMask } from "@/hooks/useMetaMask";
 import { FacePaymentConfirm } from "@/components/FacePaymentConfirm";
+import { PaymentMethodSelector } from "@/components/PaymentMethodSelector";
 
 type PaymentStep = "idle" | "face_detection" | "product_selection" | "gesture_confirmation" | "processing" | "completed" | "failed";
 
@@ -48,6 +50,9 @@ export default function DevicePayment() {
   
   const [selectedProduct, setSelectedProduct] = useState<SelectedProduct | null>(null);
   const [showFacePaymentConfirm, setShowFacePaymentConfirm] = useState(false);
+  const [showPaymentMethodSelector, setShowPaymentMethodSelector] = useState(false);
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<number | null>(null);
+  const [selectedPaymentType, setSelectedPaymentType] = useState<'card' | 'metamask' | null>(null);
   const [deviceId] = useState(1); // In production, get from device config
   const [merchantId] = useState(1); // In production, get from device config
 
@@ -98,6 +103,9 @@ export default function DevicePayment() {
     { deviceId },
     { enabled: currentStep === "product_selection" }
   );
+
+  // MetaMask hook for crypto payments
+  const metamask = useMetaMask();
 
   // Create realtime order
   const createOrderMutation = trpc.realtimeOrder.createRealtimeOrder.useMutation({
@@ -269,15 +277,47 @@ export default function DevicePayment() {
   const processPayment = () => {
     if (!detectedUser || !selectedProduct) return;
 
+    // Show payment method selector first
+    setShowPaymentMethodSelector(true);
+  };
+
+  const handlePaymentMethodSelected = (paymentMethodId: number, paymentType: 'card' | 'metamask') => {
+    setSelectedPaymentMethodId(paymentMethodId);
+    setSelectedPaymentType(paymentType);
+    setShowPaymentMethodSelector(false);
+    
     // Show face payment confirmation modal
     setShowFacePaymentConfirm(true);
   };
 
-  const handlePaymentConfirmed = () => {
-    if (!detectedUser || !selectedProduct) return;
+  const handlePaymentConfirmed = async () => {
+    if (!detectedUser || !selectedProduct || !selectedPaymentMethodId) return;
 
     setCurrentStep("processing");
+    setShowFacePaymentConfirm(false);
     
+    // If MetaMask payment, handle blockchain transaction
+    if (selectedPaymentType === 'metamask') {
+      try {
+        // Connect MetaMask if not connected
+        if (!metamask.isConnected) {
+          await metamask.connect();
+        }
+
+        // Get merchant wallet address from backend
+        // This will be returned by processPayment API
+        toast.info('Please confirm the transaction in MetaMask');
+        
+        // The actual transaction will be handled by the backend processPayment
+        // which returns merchant wallet address
+      } catch (error: any) {
+        toast.error(error.message || 'MetaMask connection failed');
+        setCurrentStep('failed');
+        return;
+      }
+    }
+    
+    // Create order (backend will handle payment based on selected method)
     createOrderMutation.mutate({
       deviceId,
       userId: detectedUser.id,
@@ -544,6 +584,19 @@ export default function DevicePayment() {
           </div>
         </div>
       </div>
+
+      {/* Payment Method Selector Modal */}
+      <PaymentMethodSelector
+        open={showPaymentMethodSelector}
+        onOpenChange={setShowPaymentMethodSelector}
+        amount={selectedProduct?.price || 0}
+        currency={selectedProduct?.currency || "USD"}
+        onSelect={handlePaymentMethodSelected}
+        onCancel={() => {
+          setShowPaymentMethodSelector(false);
+          toast.info("Payment method selection cancelled");
+        }}
+      />
 
       {/* Face Payment Confirmation Modal */}
       <FacePaymentConfirm

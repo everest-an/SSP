@@ -16,7 +16,7 @@ import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { ENV } from "./_core/env";
 import { getDb } from "./db";
-import { users, paymentMethods } from "../drizzle/schema";
+import { users, paymentMethods, orders, merchants } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 
 const stripe = ENV.stripeSecretKey ? new Stripe(ENV.stripeSecretKey, {
@@ -544,24 +544,67 @@ export const paymentMethodRouter = router({
   /**
    * Process MetaMask payment
    * 
-   * Note: This returns pending status as blockchain confirmation is required.
-   * The actual transaction must be initiated from the client side.
+   * Returns merchant wallet address and payment details for client-side transaction.
+   * The client will initiate the blockchain transaction via MetaMask.
    * 
    * @private
    */
   async processMetaMaskPayment(method: any, input: any) {
-    // MetaMask payments require client-side transaction signing
-    // Return pending status and let client handle the transaction
+    const db = await getDb();
+    if (!db) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Database not available",
+      });
+    }
+
+    // Get merchant wallet address
+    const [order] = await db
+      .select({
+        merchantId: orders.merchantId,
+      })
+      .from(orders)
+      .where(eq(orders.id, input.orderId))
+      .limit(1);
+
+    if (!order) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Order not found",
+      });
+    }
+
+    const [merchant] = await db
+      .select({
+        walletAddress: merchants.walletAddress,
+        businessName: merchants.businessName,
+      })
+      .from(merchants)
+      .where(eq(merchants.id, order.merchantId))
+      .limit(1);
+
+    if (!merchant || !merchant.walletAddress) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "Merchant wallet address not configured. Please contact merchant.",
+      });
+    }
+
     console.log(
-      `[PaymentMethod] MetaMask payment initiated for order ${input.orderId}`
+      `[PaymentMethod] MetaMask payment initiated for order ${input.orderId} to merchant ${merchant.businessName}`
     );
 
+    // Return merchant wallet address for client-side transaction
     return {
       success: true,
       pending: true,
       status: "pending_blockchain_confirmation",
-      walletAddress: method.walletAddress,
+      merchantWalletAddress: merchant.walletAddress,
+      merchantName: merchant.businessName,
+      customerWalletAddress: method.walletAddress,
       amount: input.amount,
+      currency: input.currency,
+      orderId: input.orderId,
       message: "Please confirm the transaction in MetaMask",
     };
   },

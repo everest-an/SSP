@@ -31,6 +31,7 @@ export const merchants = mysqlTable("merchants", {
   address: text("address"),
   phone: varchar("phone", { length: 50 }),
   email: varchar("email", { length: 320 }),
+  walletAddress: varchar("walletAddress", { length: 42 }), // Ethereum wallet address for receiving crypto payments
   status: mysqlEnum("status", ["active", "inactive", "suspended"]).default("active").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
