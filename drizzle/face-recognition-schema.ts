@@ -1,6 +1,23 @@
 import { int, mysqlTable, text, timestamp, varchar, mysqlEnum } from "drizzle-orm/mysql-core";
 
 /**
+ * Face embeddings table
+ * Stores individual face samples for each user
+ * Supports multiple samples for improved accuracy
+ */
+export const faceEmbeddings = mysqlTable("faceEmbeddings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // Reference to users table
+  embedding: text("embedding").notNull(), // JSON array of 128/512 dimensional vector
+  confidence: int("confidence").notNull(), // Detection confidence 0-100
+  metadata: text("metadata"), // JSON with age, gender, expressions, etc.
+  capturedAt: timestamp("capturedAt").defaultNow().notNull(),
+});
+
+export type FaceEmbedding = typeof faceEmbeddings.$inferSelect;
+export type InsertFaceEmbedding = typeof faceEmbeddings.$inferInsert;
+
+/**
  * Face recognition data for users
  * Stores facial embeddings for payment authentication
  */
