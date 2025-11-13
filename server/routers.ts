@@ -132,6 +132,7 @@ export const appRouter = router({
         address: z.string().optional(),
         phone: z.string().optional(),
         email: z.string().email().optional(),
+        walletAddress: z.string().optional(), // Ethereum wallet address for MetaMask payments
         status: z.enum(["active", "inactive", "suspended"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {

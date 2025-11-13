@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Package, Smartphone, ShoppingCart, BarChart3, Store, CreditCard, DollarSign, Wallet, User, Shield, Users } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Package, Smartphone, ShoppingCart, BarChart3, Store, CreditCard, DollarSign, Wallet, User, Shield, Users, Settings } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -29,7 +29,7 @@ import { Button } from "./ui/button";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Store, label: "Merchants", path: "/merchants/create" },
+  { icon: Settings, label: "Merchant Settings", path: "/merchant-settings" },
   { icon: Package, label: "Products", path: "/products" },
   { icon: Smartphone, label: "Devices", path: "/devices" },
   { icon: ShoppingCart, label: "Orders", path: "/orders" },
