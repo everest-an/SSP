@@ -1,5 +1,0 @@
-{
-  "buildCommand": "pnpm install && pnpm run db:push && pnpm run build",
-  "installCommand": "pnpm install",
-  "framework": null
-}
