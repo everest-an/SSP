@@ -197,23 +197,33 @@ export class GestureRecognitionService {
    * Check if thumb is up (extended upward)
    */
   private isThumbUp(landmarks: any[]): boolean {
-    // Thumb tip (4) should be higher than thumb base (2)
     const thumbTip = landmarks[4];
     const thumbBase = landmarks[2];
-    const thumbExtended = thumbTip.y < thumbBase.y - 0.05;
-
-    // Other fingers should be curled
     const palmY = landmarks[0].y;
-    const fingertipIndices = [8, 12, 16, 20]; // Index, middle, ring, pinky tips
     
+    // Check 1: Thumb should be extended upward
+    const thumbExtended = thumbTip.y < thumbBase.y - 0.08;
+    
+    // Check 2: Thumb should be roughly vertical
+    const thumbAngle = Math.atan2(
+      thumbTip.y - thumbBase.y,
+      thumbTip.x - thumbBase.x
+    );
+    const isVertical = Math.abs(thumbAngle - Math.PI / 2) < 0.6;
+    
+    // Check 3: Other fingers should be curled
+    const fingertipIndices = [8, 12, 16, 20];
     let curledCount = 0;
     fingertipIndices.forEach((idx) => {
       if (landmarks[idx].y > palmY - 0.05) {
         curledCount++;
       }
     });
+    
+    // Check 4: Thumb should be higher than other fingers
+    const thumbHigherThanFingers = thumbTip.y < palmY - 0.15;
 
-    return thumbExtended && curledCount >= 3;
+    return thumbExtended && isVertical && curledCount >= 3 && thumbHigherThanFingers;
   }
 
   /**
