@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,8 @@ import { toast } from "sonner";
 import { Mail, Lock, User, Scan, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export default function ClientLogin() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
   const [activeTab, setActiveTab] = useState<"email" | "face">("email");
   const [showPassword, setShowPassword] = useState(false);
   
@@ -28,14 +29,16 @@ export default function ClientLogin() {
   });
 
   // Email login mutation
-  const emailLoginMutation = trpc.auth.emailLogin.useMutation({
-    onSuccess: (data) => {
+  const emailLoginMutation = trpc.auth.loginWithEmail.useMutation({
+    onSuccess: async (data) => {
       toast.success("Login successful!");
+      // Refresh auth state
+      await utils.auth.me.invalidate();
       // Redirect based on user role
       if (data.user.role === "merchant" || data.user.role === "admin") {
-        navigate("/dashboard");
+        setLocation("/dashboard");
       } else {
-        navigate("/client/profile");
+        setLocation("/client/profile");
       }
     },
     onError: (error) => {
@@ -55,7 +58,7 @@ export default function ClientLogin() {
   };
 
   const handleFaceLogin = () => {
-    navigate("/face-login");
+    setLocation("/face-login");
   };
 
   return (
@@ -106,7 +109,7 @@ export default function ClientLogin() {
                       type="button"
                       variant="link"
                       className="px-0 text-xs"
-                      onClick={() => navigate("/forgot-password")}
+                      onClick={() => setLocation("/forgot-password")}
                     >
                       Forgot password?
                     </Button>
@@ -155,7 +158,7 @@ export default function ClientLogin() {
                 <Button
                   variant="link"
                   className="px-1"
-                  onClick={() => navigate("/client/register")}
+                  onClick={() => setLocation("/client/register")}
                 >
                   Sign up
                 </Button>
@@ -195,7 +198,7 @@ export default function ClientLogin() {
                 <Button
                   variant="link"
                   className="px-1"
-                  onClick={() => navigate("/face-registration")}
+                  onClick={() => setLocation("/face-registration")}
                 >
                   Register Face ID
                 </Button>

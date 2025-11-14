@@ -35,6 +35,12 @@ import {
 } from "./db";
 import { TRPCError } from "@trpc/server";
 import { stripeRouters } from "./stripeRouters";
+import { registerUser, loginWithEmail, loginWithFace } from "./services/authService";
+import { createUserSession } from "./services/sessionService";
+import { findSimilarFaces } from "./services/faceUniquenessCheck";
+import { validateActiveLiveness } from "./services/livenessDetection";
+import { getUserFaceEmbeddings } from "./services/faceEmbeddingStorage";
+import { COOKIE_NAME } from "@shared/const";
 import { faceRecognitionRouter, walletRouter, gestureRouter, deviceProductRouter } from "./faceAndWalletRouters";
 import { faceAuthRouter } from "./routes/faceAuth";
 import { adminRouter } from "./adminRouters";
@@ -70,11 +76,111 @@ export const appRouter = router({
   
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+
+    // Email/Password Registration
+    register: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(8),
+        name: z.string().min(1),
+        phone: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Register user
+        const user = await registerUser({
+          email: input.email,
+          password: input.password,
+          name: input.name,
+          phone: input.phone,
+        });
+
+        // Create session
+        const openId = `email_${user.id}_${Date.now()}`;
+        await createUserSession(ctx.res, user.id, openId, ctx.req);
+
+        return {
+          success: true,
+          user,
+        };
+      }),
+
+    // Email/Password Login
+    loginWithEmail: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Authenticate user
+        const user = await loginWithEmail(input.email, input.password);
+
+        // Create session
+        const openId = `email_${user.id}_${Date.now()}`;
+        await createUserSession(ctx.res, user.id, openId, ctx.req);
+
+        return {
+          success: true,
+          user,
+        };
+      }),
+
+    // Face Recognition Login
+    loginWithFace: publicProcedure
+      .input(z.object({
+        embedding: z.array(z.number()),
+        videoFrames: z.array(z.string()).min(5),
+        challenges: z.array(z.any()),
+        deviceFingerprint: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Step 1: Validate liveness
+        const livenessResult = await validateActiveLiveness(input.videoFrames, input.challenges);
+        
+        if (!livenessResult.passed) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: `Liveness check failed: ${livenessResult.failureReason}`,
+          });
+        }
+
+        // Step 2: Find matching face in database
+        const similarities = await findSimilarFaces(input.embedding, 10);
+        
+        if (similarities.length === 0) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: 'No matching face found. Please register first.',
+          });
+        }
+
+        const bestMatch = similarities[0];
+        const VERIFICATION_THRESHOLD = 0.75;
+
+        if (bestMatch.similarity < VERIFICATION_THRESHOLD) {
+          throw new TRPCError({
+            code: 'UNAUTHORIZED',
+            message: `Face verification failed: Confidence too low (${(bestMatch.similarity * 100).toFixed(1)}%)`,
+          });
+        }
+
+        // Step 3: Get user and create session
+        const user = await loginWithFace(bestMatch.userId);
+        const openId = `face_${user.id}_${Date.now()}`;
+        await createUserSession(ctx.res, user.id, openId, ctx.req);
+
+        return {
+          success: true,
+          user,
+          confidence: bestMatch.similarity,
+          livenessScore: livenessResult.score,
+        };
+      }),
   }),
 
   // Merchant Management

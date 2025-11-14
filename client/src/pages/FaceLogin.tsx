@@ -42,7 +42,8 @@ export function FaceLogin() {
     { sessionId: livenessSessionId || '' },
     { enabled: false }
   );
-  const verifyFaceMutation = trpc.faceAuth.verifyFace.useMutation();
+  const loginMutation = trpc.auth.loginWithFace.useMutation();
+  const utils = trpc.useUtils();
 
   // Initialize MediaPipe Face Mesh
   useEffect(() => {
@@ -119,25 +120,28 @@ export function FaceLogin() {
       setProgress(80);
       setStep('verifying');
 
-      // Verify face
-      const verifyResult = await verifyFaceMutation.mutateAsync({
+      // Login with face
+      const loginResult = await loginMutation.mutateAsync({
         embedding: embeddingResult.embedding,
-        action: 'login',
-        challenges: [], // Rekognition handles liveness
+        videoFrames: [], // TODO: Collect video frames for liveness
+        challenges: [], // TODO: Generate and validate challenges
         deviceFingerprint: navigator.userAgent,
       });
 
-      if (verifyResult.verified) {
+      if (loginResult.success) {
         setProgress(100);
         setStep('success');
         stopCamera();
 
-        // Redirect to dashboard after 2 seconds
+        // Refresh auth state
+        await utils.auth.me.invalidate();
+
+        // Redirect to dashboard after 1 second
         setTimeout(() => {
           setLocation('/dashboard');
-        }, 2000);
+        }, 1000);
       } else {
-        throw new Error('Face verification failed');
+        throw new Error('Face login failed');
       }
 
     } catch (err) {

@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +30,8 @@ import {
 } from "lucide-react";
 
 export default function ClientRegister() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -49,8 +50,10 @@ export default function ClientRegister() {
 
   // Registration mutation
   const registerMutation = trpc.auth.register.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success("Account created successfully!");
+      // Refresh auth state
+      await utils.auth.me.invalidate();
       setRegisteredUserId(data.user.id);
       setStep(2);
     },
@@ -94,11 +97,11 @@ export default function ClientRegister() {
 
   const handleSkipFaceEnrollment = () => {
     toast.success("You can enroll your face later from your profile");
-    navigate("/client/login");
+    setLocation("/client/login");
   };
 
   const handleEnrollFace = () => {
-    navigate(`/face-enrollment?userId=${registeredUserId}`);
+    setLocation(`/face-enrollment?userId=${registeredUserId}`);
   };
 
   const getPasswordStrength = () => {
@@ -311,7 +314,7 @@ export default function ClientRegister() {
 
               <div className="text-center text-sm">
                 <span className="text-muted-foreground">Already have an account? </span>
-                <Button variant="link" className="px-1" onClick={() => navigate("/client/login")}>
+                <Button variant="link" className="px-1" onClick={() => setLocation("/client/login")}>
                   Sign in
                 </Button>
               </div>

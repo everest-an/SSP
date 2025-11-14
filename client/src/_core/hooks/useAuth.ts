@@ -67,6 +67,10 @@ export function useAuth(options?: UseAuthOptions) {
     if (typeof window === "undefined") return;
     if (window.location.pathname === redirectPath) return;
 
+    // Prevent redirect loop on auth pages
+    const authPages = ['/face-login', '/client/login', '/client/register', '/login', '/register', '/auth-guide'];
+    if (authPages.includes(window.location.pathname)) return;
+
     window.location.href = redirectPath
   }, [
     redirectOnUnauthenticated,
