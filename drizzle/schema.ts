@@ -153,6 +153,8 @@ export type InsertTransaction = typeof transactions.$inferInsert;
 
 // Import extended schemas
 export * from "./face-recognition-schema";
+export * from "./schema_security"; // 新增导入安全相关的Schema
+export * from "./schema_payment"; // 新增导入支付相关的Schema
 
 /**
  * Detection events table - stores computer vision detection events
@@ -193,38 +195,6 @@ export const analytics = mysqlTable("analytics", {
 export type Analytics = typeof analytics.$inferSelect;
 export type InsertAnalytics = typeof analytics.$inferInsert;
 
-// Audit logs moved to schema_security.ts (Sprint 3 enhanced version)
-// Import from schema_security.ts if needed
-
-/**
- * Payment Methods table - stores user payment methods
- * Supports credit/debit cards (via Stripe) and crypto wallets (MetaMask)
- */
-export const paymentMethods = mysqlTable("payment_methods", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(), // Reference to users table
-  type: mysqlEnum("type", ["card", "metamask", "custodial_wallet"]).notNull(),
-  isDefault: tinyint("isDefault").default(0).notNull(), // 1 = default, 0 = not default
-  
-  // Stripe card details
-  stripePaymentMethodId: varchar("stripePaymentMethodId", { length: 255 }),
-  stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
-  cardBrand: varchar("cardBrand", { length: 50 }), // visa, mastercard, amex, etc.
-  cardLast4: varchar("cardLast4", { length: 4 }),
-  cardExpMonth: int("cardExpMonth"),
-  cardExpYear: int("cardExpYear"),
-  
-  // Crypto wallet details
-  walletAddress: varchar("walletAddress", { length: 255 }), // Ethereum address
-  walletType: varchar("walletType", { length: 50 }), // "non_custodial" for MetaMask
-  
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type PaymentMethod = typeof paymentMethods.$inferSelect;
-export type InsertPaymentMethod = typeof paymentMethods.$inferInsert;
-
 // ============================================================================
 // Face Recognition & Biometric Authentication Tables
 // ============================================================================
@@ -257,94 +227,75 @@ export const faceProfiles = mysqlTable("face_profiles", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(), // Reference to users table
   faceTemplateEncrypted: text("faceTemplateEncrypted").notNull(), // Encrypted embedding (base64 encoded)
-  templateKmsKeyId: varchar("templateKmsKeyId", { length: 255 }).notNull(), // AWS KMS key ARN
-  modelVersion: varchar("modelVersion", { length: 50 }).notNull(), // Model version used to generate embedding
-  enrollmentQuality: decimal("enrollmentQuality", { precision: 3, scale: 2 }), // Quality score 0.00-1.00
-  deviceFingerprint: varchar("deviceFingerprint", { length: 255 }), // Device used for enrollment
-  status: mysqlEnum("status", ["active", "inactive", "revoked"]).default("active").notNull(),
+  templateKmsKeyId: varchar("templateKmsKeyId", { length: 255 }).notNull(),
+  enrollmentMethod: mysqlEnum("enrollmentMethod", ["initial", "update", "admin_override"]).default("initial").notNull(),
+  enrollmentQuality: decimal("enrollmentQuality", { precision: 5, scale: 4 }), // Quality score of the enrolled template
+  livenessPassed: boolean("livenessPassed").default(false).notNull(),
+  livenessConfidence: decimal("livenessConfidence", { precision: 3, scale: 2 }),
+  isDefault: boolean("isDefault").default(true).notNull(),
+  status: mysqlEnum("status", ["active", "inactive", "pending_review", "revoked"]).default("active").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  lastUsedAt: timestamp("lastUsedAt"),
-  revokedAt: timestamp("revokedAt"),
-  revokedReason: text("revokedReason"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type FaceProfile = typeof faceProfiles.$inferSelect;
 export type InsertFaceProfile = typeof faceProfiles.$inferInsert;
 
 /**
- * Face index mapping table - maps face profiles to vector database IDs
- * Used for ANN (Approximate Nearest Neighbor) search in FAISS/Milvus/Pinecone
- * 
- * The actual embedding vectors are stored in a specialized vector database,
- * and this table maintains the mapping between our face_profiles and vector DB IDs
+ * Face verification sessions table - stores history of face login/payment attempts
  */
-export const faceIndexMap = mysqlTable("face_index_map", {
+export const faceVerificationSessions = mysqlTable("face_verification_sessions", {
   id: int("id").autoincrement().primaryKey(),
-  faceProfileId: int("faceProfileId").notNull().unique(), // Reference to face_profiles
-  vectorDbId: varchar("vectorDbId", { length: 255 }).notNull().unique(), // ID in FAISS/Milvus/Pinecone
-  vectorDbName: varchar("vectorDbName", { length: 100 }).notNull(), // Which vector DB (faiss, milvus, pinecone)
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-export type FaceIndexMap = typeof faceIndexMap.$inferSelect;
-export type InsertFaceIndexMap = typeof faceIndexMap.$inferInsert;
-
-/**
- * Face verification attempts table - audit log for all face verification attempts
- * Critical for security monitoring, fraud detection, and compliance
- * 
- * Tracks both successful and failed verification attempts with detailed context
- */
-export const faceVerificationAttempts = mysqlTable("face_verification_attempts", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId"), // Null if verification failed before user identification
-  faceProfileId: int("faceProfileId"), // Which face profile was matched (if successful)
-  action: varchar("action", { length: 50 }).notNull(), // login, payment, enrollment, verification
-  result: mysqlEnum("result", ["success", "failed", "rejected"]).notNull(),
-  confidenceScore: decimal("confidenceScore", { precision: 5, scale: 4 }), // 0.0000-1.0000
-  livenessScore: decimal("livenessScore", { precision: 5, scale: 4 }), // 0.0000-1.0000
-  livenessMethod: varchar("livenessMethod", { length: 50 }), // active_challenge, passive_detection
-  failureReason: varchar("failureReason", { length: 255 }), // low_quality, no_match, liveness_failed, etc.
-  ipAddress: varchar("ipAddress", { length: 45 }), // IPv4 or IPv6
-  userAgent: text("userAgent"),
+  userId: int("userId"), // Nullable if verification failed to identify user
+  faceProfileId: int("faceProfileId"),
+  sessionId: varchar("sessionId", { length: 255 }).notNull().unique(),
+  verificationType: mysqlEnum("verificationType", ["login", "payment", "enrollment_check"]).notNull(),
+  success: boolean("success").default(false).notNull(),
+  failureReason: varchar("failureReason", { length: 255 }),
+  ipAddress: varchar("ipAddress", { length: 45 }),
   deviceFingerprint: varchar("deviceFingerprint", { length: 255 }),
-  geoLocation: varchar("geoLocation", { length: 255 }), // City, Country
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type FaceVerificationAttempt = typeof faceVerificationAttempts.$inferSelect;
-export type InsertFaceVerificationAttempt = typeof faceVerificationAttempts.$inferInsert;
-
-// Note: auditLogs table already exists above (line 198)
-// We will enhance the existing table instead of creating a duplicate
+export type FaceVerificationSession = typeof faceVerificationSessions.$inferSelect;
+export type InsertFaceVerificationSession = typeof faceVerificationSessions.$inferInsert;
 
 /**
- * User security settings table - stores user-specific security preferences
- * Includes MFA settings, device trust, and security notifications
+ * Face liveness sessions table - stores history of liveness checks
  */
-export const userSecuritySettings = mysqlTable("user_security_settings", {
+export const faceLivenessSessions = mysqlTable("face_liveness_sessions", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().unique(), // One-to-one with users table
-  mfaEnabled: boolean("mfaEnabled").default(false).notNull(),
-  mfaSecret: varchar("mfaSecret", { length: 255 }), // Encrypted TOTP secret
-  mfaBackupCodes: text("mfaBackupCodes"), // Encrypted JSON array of backup codes
-  faceAuthEnabled: boolean("faceAuthEnabled").default(false).notNull(),
-  passwordLastChanged: timestamp("passwordLastChanged"),
-  lastSecurityReview: timestamp("lastSecurityReview"),
-  trustedDevices: text("trustedDevices"), // JSON array of device fingerprints
-  securityNotifications: boolean("securityNotifications").default(true).notNull(),
+  userId: int("userId"),
+  sessionId: varchar("sessionId", { length: 255 }).notNull().unique(),
+  livenessType: mysqlEnum("livenessType", ["passive", "active_challenge"]).notNull(),
+  success: boolean("success").default(false).notNull(),
+  confidenceScore: decimal("confidenceScore", { precision: 3, scale: 2 }),
+  failureReason: varchar("failureReason", { length: 255 }),
+  videoHash: varchar("videoHash", { length: 255 }), // Hash of the video stream for anti-replay
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type UserSecuritySettings = typeof userSecuritySettings.$inferSelect;
-export type InsertUserSecuritySettings = typeof userSecuritySettings.$inferInsert;
+export type FaceLivenessSession = typeof faceLivenessSessions.$inferSelect;
+export type InsertFaceLivenessSession = typeof faceLivenessSessions.$inferInsert;
 
-// Sprint 3: Export security-related tables
-export * from './schema_security';
+/**
+ * Face enrollment history table - stores history of face enrollment attempts
+ */
+export const faceEnrollmentHistory = mysqlTable("face_enrollment_history", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  faceProfileId: int("faceProfileId"),
+  success: boolean("success").default(false).notNull(),
+  failureReason: varchar("failureReason", { length: 255 }),
+  enrollmentQuality: decimal("enrollmentQuality", { precision: 5, scale: 4 }),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  deviceFingerprint: varchar("deviceFingerprint", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
 
-// Sprint 3.5: Export payment-related tables
-export * from './schema_payment';
+export type FaceEnrollmentHistory = typeof faceEnrollmentHistory.$inferSelect;
+export type InsertFaceEnrollmentHistory = typeof faceEnrollmentHistory.$inferInsert;
 
-// Sprint 4: Export privacy and review tables
-export * from './schema_privacy';
+// Remove the old paymentMethods definition to avoid conflict
+// The new definition is in schema_payment.ts
+// export const paymentMethods = ...
