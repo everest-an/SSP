@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, tinyint, binary } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, tinyint, binary, blob } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -256,7 +256,7 @@ export type InsertUserIdentity = typeof userIdentities.$inferInsert;
 export const faceProfiles = mysqlTable("face_profiles", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(), // Reference to users table
-  faceTemplateEncrypted: binary("faceTemplateEncrypted", { length: 2048 }).notNull(), // Encrypted embedding (max 2KB)
+  faceTemplateEncrypted: text("faceTemplateEncrypted").notNull(), // Encrypted embedding (base64 encoded)
   templateKmsKeyId: varchar("templateKmsKeyId", { length: 255 }).notNull(), // AWS KMS key ARN
   modelVersion: varchar("modelVersion", { length: 50 }).notNull(), // Model version used to generate embedding
   enrollmentQuality: decimal("enrollmentQuality", { precision: 3, scale: 2 }), // Quality score 0.00-1.00
