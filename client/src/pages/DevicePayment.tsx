@@ -53,8 +53,19 @@ export default function DevicePayment() {
   const [showPaymentMethodSelector, setShowPaymentMethodSelector] = useState(false);
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<number | null>(null);
   const [selectedPaymentType, setSelectedPaymentType] = useState<'card' | 'metamask' | null>(null);
-  const [deviceId] = useState(1); // In production, get from device config
-  const [merchantId] = useState(1); // In production, get from device config
+  const [faceVerificationAttempted, setFaceVerificationAttempted] = useState(false);
+  const [mediapipeLoading, setMediapipeLoading] = useState(true);
+  const [mediapipeError, setMediapipeError] = useState<string | null>(null);
+  
+  // Get device and merchant ID from URL params or use defaults
+  const [deviceId] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return Number(params.get('deviceId')) || 1;
+  });
+  const [merchantId] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return Number(params.get('merchantId')) || 1;
+  });
 
   // WebSocket connection for real-time updates
   const { isConnected: wsConnected, lastMessage } = useWebSocket({
@@ -133,6 +144,9 @@ export default function DevicePayment() {
   useEffect(() => {
     const initMediaPipe = async () => {
       try {
+        setMediapipeLoading(true);
+        setMediapipeError(null);
+        
         const face = new FaceDetectionService();
         await face.initialize();
         setFaceService(face);
@@ -142,9 +156,12 @@ export default function DevicePayment() {
         setGestureService(gesture);
         
         console.log("[DevicePayment] MediaPipe initialized");
-      } catch (error) {
+        setMediapipeLoading(false);
+      } catch (error: any) {
         console.error("[DevicePayment] Failed to initialize MediaPipe:", error);
-        toast.error("Failed to initialize camera services");
+        setMediapipeError(error.message || "Failed to initialize camera services");
+        setMediapipeLoading(false);
+        toast.error("Failed to initialize camera services. Please refresh the page.");
       }
     };
 
@@ -211,10 +228,11 @@ export default function DevicePayment() {
             ctx.strokeRect(bbox.originX, bbox.originY, bbox.width, bbox.height);
           }
 
-          // If in face detection step, verify the face
-          if (currentStep === "face_detection" && !detectedUser) {
+          // If in face detection step, verify the face (only once)
+          if (currentStep === "face_detection" && !detectedUser && !faceVerificationAttempted && !verifyFaceMutation.isPending) {
             const embedding = faceService.extractFaceEmbedding(faceDetections);
             if (embedding) {
+              setFaceVerificationAttempted(true);
               verifyFaceMutation.mutate({ faceEmbedding: embedding });
             }
           }
@@ -277,8 +295,13 @@ export default function DevicePayment() {
   const processPayment = () => {
     if (!detectedUser || !selectedProduct) return;
 
-    // Show payment method selector first
-    setShowPaymentMethodSelector(true);
+    // If using custodial wallet, skip payment method selector and go directly to face confirmation
+    if (detectedUser.walletType === 'custodial') {
+      setShowFacePaymentConfirm(true);
+    } else {
+      // Show payment method selector for other payment types
+      setShowPaymentMethodSelector(true);
+    }
   };
 
   const handlePaymentMethodSelected = (paymentMethodId: number, paymentType: 'card' | 'metamask') => {
@@ -339,6 +362,9 @@ export default function DevicePayment() {
     setFaceDetected(false);
     setThumbsUpDetected(false);
     setGestureConfidence(0);
+    setFaceVerificationAttempted(false);
+    setSelectedPaymentMethodId(null);
+    setSelectedPaymentType(null);
     stopCamera();
   };
 
@@ -461,21 +487,49 @@ export default function DevicePayment() {
                     <div className="text-center text-white">
                       <XCircle className="h-24 w-24 mx-auto mb-4" />
                       <h2 className="text-3xl font-bold">Payment Failed</h2>
+                      <p className="text-sm mt-2 opacity-90">Please try again</p>
                     </div>
                   </div>
                 )}
               </div>
 
               {currentStep === "idle" && (
-                <Button onClick={startCamera} className="w-full" size="lg">
+                <Button 
+                  onClick={startCamera} 
+                  className="w-full" 
+                  size="lg"
+                  disabled={mediapipeLoading || !!mediapipeError}
+                >
                   <Camera className="mr-2 h-5 w-5" />
-                  Start Payment
+                  {mediapipeLoading ? "Loading Camera Services..." : mediapipeError ? "Camera Service Error" : "Start Payment"}
                 </Button>
+              )}
+              
+              {mediapipeError && currentStep === "idle" && (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    {mediapipeError}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2 w-full"
+                      onClick={() => window.location.reload()}
+                    >
+                      Refresh Page
+                    </Button>
+                  </AlertDescription>
+                </Alert>
               )}
 
               {currentStep !== "idle" && currentStep !== "completed" && currentStep !== "failed" && (
                 <Button onClick={resetPayment} variant="outline" className="w-full">
                   Cancel
+                </Button>
+              )}
+              
+              {currentStep === "failed" && (
+                <Button onClick={resetPayment} className="w-full" size="lg">
+                  Try Again
                 </Button>
               )}
             </CardContent>
