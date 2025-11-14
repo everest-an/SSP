@@ -1,11 +1,12 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { FaceDetectionService } from "@/lib/mediapipe";
-import { Camera, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Camera, CheckCircle, XCircle, Loader2, AlertCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -21,6 +22,8 @@ export default function FaceRegistration() {
   const [maxPaymentAmount, setMaxPaymentAmount] = useState(5000); // $50 default
   const [stripeCustomerId, setStripeCustomerId] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [mediapipeLoading, setMediapipeLoading] = useState(true);
+  const [mediapipeError, setMediapipeError] = useState<string | null>(null);
 
   // Check if user already has face recognition
   const { data: existingFaceRec, isLoading: faceRecLoading } = trpc.faceRecognition.get.useQuery(undefined, {
@@ -42,12 +45,17 @@ export default function FaceRegistration() {
   useEffect(() => {
     const initMediaPipe = async () => {
       try {
+        setMediapipeLoading(true);
+        setMediapipeError(null);
         const service = new FaceDetectionService();
         await service.initialize();
         setFaceService(service);
-      } catch (error) {
+        setMediapipeLoading(false);
+      } catch (error: any) {
         console.error("Failed to initialize MediaPipe:", error);
-        toast.error("Failed to initialize face detection");
+        setMediapipeError(error.message || "Failed to initialize face detection");
+        setMediapipeLoading(false);
+        toast.error("Failed to initialize face detection. Please refresh the page.");
       }
     };
 
@@ -145,12 +153,21 @@ export default function FaceRegistration() {
       return;
     }
 
+    if (!faceDetected) {
+      toast.error("No face detected. Please ensure your face is visible in the camera.");
+      return;
+    }
+
     registerFaceMutation.mutate({
       faceEmbedding,
       stripeCustomerId: stripeCustomerId || undefined,
       paymentMethodId: paymentMethodId || undefined,
       maxPaymentAmount,
     });
+  };
+
+  const retryMediaPipeInit = () => {
+    window.location.reload();
   };
 
   if (loading || faceRecLoading) {
@@ -279,9 +296,13 @@ export default function FaceRegistration() {
 
               <div className="flex gap-2">
                 {!cameraActive ? (
-                  <Button onClick={startCamera} className="flex-1">
+                  <Button 
+                    onClick={startCamera} 
+                    className="flex-1"
+                    disabled={mediapipeLoading || !!mediapipeError}
+                  >
                     <Camera className="mr-2 h-4 w-4" />
-                    Start Camera
+                    {mediapipeLoading ? "Loading..." : "Start Camera"}
                   </Button>
                 ) : (
                   <Button onClick={stopCamera} variant="outline" className="flex-1">
@@ -289,6 +310,23 @@ export default function FaceRegistration() {
                   </Button>
                 )}
               </div>
+              
+              {mediapipeError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {mediapipeError}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2 w-full"
+                      onClick={retryMediaPipeInit}
+                    >
+                      Retry
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
             </CardContent>
           </Card>
 

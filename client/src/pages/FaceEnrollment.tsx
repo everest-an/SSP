@@ -31,6 +31,8 @@ export function FaceEnrollment() {
   const [currentChallengeIndex, setCurrentChallengeIndex] = useState(0);
   const [capturedFrames, setCapturedFrames] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [mediapipeLoading, setMediapipeLoading] = useState(true);
+  const [mediapipeError, setMediapipeError] = useState<string | null>(null);
 
   const { videoRef, isStreaming, error: cameraError, startCamera, stopCamera, captureFrames } = useCamera();
   const [faceMesh, setFaceMesh] = useState<FaceMesh | null>(null);
@@ -40,14 +42,29 @@ export function FaceEnrollment() {
 
   // Initialize MediaPipe Face Mesh
   useEffect(() => {
-    const mesh = createFaceMesh((results) => {
-      // Results will be processed in captureBestFrame
-    });
-    setFaceMesh(mesh);
+    const initFaceMesh = async () => {
+      try {
+        setMediapipeLoading(true);
+        setMediapipeError(null);
+        const mesh = createFaceMesh((results) => {
+          // Results will be processed in captureBestFrame
+        });
+        setFaceMesh(mesh);
+        setMediapipeLoading(false);
+      } catch (error: any) {
+        console.error('Failed to initialize MediaPipe:', error);
+        setMediapipeError(error.message || 'Failed to initialize face detection');
+        setMediapipeLoading(false);
+      }
+    };
+
+    initFaceMesh();
 
     return () => {
       // Cleanup
-      mesh.close();
+      if (faceMesh) {
+        faceMesh.close();
+      }
     };
   }, []);
 
@@ -200,15 +217,37 @@ export function FaceEnrollment() {
                   </AlertDescription>
                 </Alert>
 
+                {mediapipeError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {mediapipeError}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2 w-full"
+                        onClick={() => window.location.reload()}
+                      >
+                        Retry
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <Button
                   onClick={handleGenerateChallenges}
-                  disabled={generateChallengesMutation.isPending}
+                  disabled={generateChallengesMutation.isPending || mediapipeLoading || !!mediapipeError}
                   className="w-full"
                 >
                   {generateChallengesMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Preparing...
+                    </>
+                  ) : mediapipeLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading Face Detection...
                     </>
                   ) : (
                     'Start Enrollment'

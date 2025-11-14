@@ -31,6 +31,8 @@ export function FaceLogin() {
   const [livenessSessionId, setLivenessSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [mediapipeLoading, setMediapipeLoading] = useState(true);
+  const [mediapipeError, setMediapipeError] = useState<string | null>(null);
 
   const { videoRef, isStreaming, error: cameraError, startCamera, stopCamera } = useCamera();
   const [faceMesh, setFaceMesh] = useState<FaceMesh | null>(null);
@@ -44,13 +46,28 @@ export function FaceLogin() {
 
   // Initialize MediaPipe Face Mesh
   useEffect(() => {
-    const mesh = createFaceMesh((results) => {
-      // Results will be processed in captureBestFrame
-    });
-    setFaceMesh(mesh);
+    const initFaceMesh = async () => {
+      try {
+        setMediapipeLoading(true);
+        setMediapipeError(null);
+        const mesh = createFaceMesh((results) => {
+          // Results will be processed in captureBestFrame
+        });
+        setFaceMesh(mesh);
+        setMediapipeLoading(false);
+      } catch (error: any) {
+        console.error('Failed to initialize MediaPipe:', error);
+        setMediapipeError(error.message || 'Failed to initialize face detection');
+        setMediapipeLoading(false);
+      }
+    };
+
+    initFaceMesh();
 
     return () => {
-      mesh.close();
+      if (faceMesh) {
+        faceMesh.close();
+      }
     };
   }, []);
 
@@ -194,10 +211,31 @@ export function FaceLogin() {
                   </AlertDescription>
                 </Alert>
 
+                {mediapipeError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {mediapipeError}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2 w-full"
+                        onClick={() => window.location.reload()}
+                      >
+                        Retry
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="flex gap-3">
-                  <Button onClick={handleStartLogin} className="flex-1">
+                  <Button 
+                    onClick={handleStartLogin} 
+                    className="flex-1"
+                    disabled={mediapipeLoading || !!mediapipeError}
+                  >
                     <Camera className="mr-2 h-4 w-4" />
-                    Start Face Login
+                    {mediapipeLoading ? 'Loading...' : 'Start Face Login'}
                   </Button>
                   <Button variant="outline" onClick={handleSwitchToPassword}>
                     Use Password Instead
