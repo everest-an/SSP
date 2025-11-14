@@ -11,6 +11,8 @@ import { trpc } from "@/lib/trpc";
 import { Wallet, CreditCard, Plus, ArrowUpRight, ArrowDownLeft, History } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { WalletBalanceChart } from "@/components/WalletBalanceChart";
 import DashboardLayout from "@/components/DashboardLayout";
 
 export default function Wallets() {
@@ -172,6 +174,19 @@ export default function Wallets() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Balance Chart for Default Wallet */}
+        {wallets && wallets.length > 0 && (() => {
+          const defaultWallet = wallets.find(w => w.isDefault === 1) || wallets[0];
+          const walletTransactions = selectedWalletId === defaultWallet.id ? transactions : [];
+          return (
+            <WalletBalanceChart
+              currentBalance={defaultWallet.balance}
+              transactions={walletTransactions || []}
+              currency={defaultWallet.currency}
+            />
+          );
+        })()}
 
         {/* Wallets Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
