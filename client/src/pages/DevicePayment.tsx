@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FaceDetectionService, GestureRecognitionService } from "@/lib/mediapipe";
+import { GestureIndicator, HandTrackingOverlay } from "@/components/GestureIndicator";
 import { trpc } from "@/lib/trpc";
 import { Camera, CheckCircle, XCircle, Loader2, ThumbsUp, User, Wallet, CreditCard } from "lucide-react";
 import { toast } from "sonner";
@@ -465,10 +466,13 @@ export default function DevicePayment() {
                   )}
 
                   {currentStep === "gesture_confirmation" && (
-                    <Badge variant={thumbsUpDetected ? "default" : "secondary"} className="flex items-center gap-2">
-                      <ThumbsUp className="h-4 w-4" />
-                      {thumbsUpDetected ? `Thumbs Up (${gestureConfidence.toFixed(0)}%)` : "Waiting for 👍"}
-                    </Badge>
+                    <div className="absolute top-4 left-4 right-4">
+                      <GestureIndicator
+                        detected={thumbsUpDetected}
+                        confidence={gestureConfidence}
+                        type="thumbs_up"
+                      />
+                    </div>
                   )}
                 </div>
 
