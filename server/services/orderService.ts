@@ -9,8 +9,8 @@
  * - Order lifecycle management
  */
 
-import { db } from '../_core/db';
-import { orders, orderItems, products, transactions } from '../_core/schema';
+import { db } from '../db';
+import { orders, orderItems, products, transactions } from '../../drizzle/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
