@@ -10,6 +10,8 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }).unique(),
   passwordHash: varchar("passwordHash", { length: 255 }), // For email/password login
+  twoFactorSecret: varchar("twoFactorSecret", { length: 255 }), // TOTP secret for 2FA
+  twoFactorEnabled: boolean("twoFactorEnabled").default(false).notNull(), // Whether 2FA is enabled
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin", "merchant"]).default("user").notNull(),
   stripeCustomerId: varchar("stripeCustomerId", { length: 255 }), // Stripe customer ID for payments
@@ -20,6 +22,25 @@ export const users = mysqlTable("users", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+
+/**
+ * Login History table - tracks user login activities
+ */
+export const loginHistory = mysqlTable("login_history", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  loginMethod: varchar("loginMethod", { length: 64 }), // 'email', 'face', 'oauth'
+  ipAddress: varchar("ipAddress", { length: 45 }), // IPv4 or IPv6
+  userAgent: text("userAgent"), // Browser/device information
+  deviceFingerprint: varchar("deviceFingerprint", { length: 255 }),
+  location: varchar("location", { length: 255 }), // City, country
+  status: mysqlEnum("status", ["success", "failed"]).default("success").notNull(),
+  failureReason: text("failureReason"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type LoginHistory = typeof loginHistory.$inferSelect;
+export type InsertLoginHistory = typeof loginHistory.$inferInsert;
 
 /**
  * Merchants table - stores retail store information

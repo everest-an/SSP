@@ -105,6 +105,12 @@ export const appRouter = router({
         const openId = `email_${user.id}_${Date.now()}`;
         await createUserSession(ctx.res, user.id, openId, ctx.req);
 
+        // Send welcome email (async, don't wait)
+        const { sendWelcomeEmail } = await import('./services/emailService');
+        sendWelcomeEmail(user.email, user.name || 'User').catch(err => {
+          console.error('Failed to send welcome email:', err);
+        });
+
         return {
           success: true,
           user,
@@ -125,6 +131,15 @@ export const appRouter = router({
         // Create session with rememberMe option
         const openId = `email_${user.id}_${Date.now()}`;
         await createUserSession(ctx.res, user.id, openId, ctx.req, input.rememberMe);
+
+        // Record login history
+        const { recordLoginAttempt } = await import('./services/loginHistoryService');
+        await recordLoginAttempt({
+          userId: user.id,
+          loginMethod: 'email',
+          req: ctx.req,
+          status: 'success',
+        });
 
         return {
           success: true,
@@ -195,6 +210,12 @@ export const appRouter = router({
         // Always return success to prevent email enumeration
         if (result) {
           console.log(`Password reset token: ${result.token}`);
+          
+          // Send password reset email (async, don't wait)
+          const { sendPasswordResetEmail } = await import('./services/emailService');
+          sendPasswordResetEmail(input.email, result.token, '1 hour').catch(err => {
+            console.error('Failed to send password reset email:', err);
+          });
         }
         
         return {
@@ -233,6 +254,111 @@ export const appRouter = router({
           success: true,
           message: 'Password has been reset successfully',
         };
+      }),
+
+    // Get Login History
+    getLoginHistory: protectedProcedure
+      .input(z.object({
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+        status: z.enum(['success', 'failed']).optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const { getLoginHistory } = await import('./services/loginHistoryService');
+        return getLoginHistory(ctx.user.id, input);
+      }),
+
+    // Get Login Statistics
+    getLoginStatistics: protectedProcedure
+      .input(z.object({
+        days: z.number().optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const { getLoginStatistics } = await import('./services/loginHistoryService');
+        return getLoginStatistics(ctx.user.id, input.days);
+      }),
+
+    // Detect Suspicious Activity
+    detectSuspiciousActivity: protectedProcedure
+      .query(async ({ ctx }) => {
+        const { detectSuspiciousActivity } = await import('./services/loginHistoryService');
+        return detectSuspiciousActivity(ctx.user.id);
+      }),
+
+    // Generate 2FA Secret
+    generate2FASecret: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        const { generate2FASecret } = await import('./services/twoFactorAuthService');
+        return generate2FASecret(ctx.user.id);
+      }),
+
+    // Enable 2FA
+    enable2FA: protectedProcedure
+      .input(z.object({
+        secret: z.string(),
+        verificationCode: z.string().length(6),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { enable2FA } = await import('./services/twoFactorAuthService');
+        const success = await enable2FA(ctx.user.id, input.secret, input.verificationCode);
+        
+        if (!success) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid verification code' });
+        }
+        
+        return { success: true };
+      }),
+
+    // Disable 2FA
+    disable2FA: protectedProcedure
+      .input(z.object({
+        password: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Verify password before disabling 2FA
+        const { loginWithEmail } = await import('./services/authService');
+        const { users } = await import('@db/schema');
+        const { eq } = await import('drizzle-orm');
+        
+        const [user] = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+        
+        if (!user || !user.email) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+        }
+        
+        try {
+          await loginWithEmail(user.email, input.password);
+        } catch (error) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid password' });
+        }
+        
+        const { disable2FA } = await import('./services/twoFactorAuthService');
+        await disable2FA(ctx.user.id);
+        
+        return { success: true };
+      }),
+
+    // Verify 2FA Code
+    verify2FACode: protectedProcedure
+      .input(z.object({
+        code: z.string().length(6),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { verify2FACode } = await import('./services/twoFactorAuthService');
+        const isValid = await verify2FACode(ctx.user.id, input.code);
+        
+        return { valid: isValid };
+      }),
+
+    // Check 2FA Status
+    get2FAStatus: protectedProcedure
+      .query(async ({ ctx }) => {
+        const { is2FAEnabled } = await import('./services/twoFactorAuthService');
+        const enabled = await is2FAEnabled(ctx.user.id);
+        
+        return { enabled };
       }),
   }),
 
@@ -560,6 +686,70 @@ export const appRouter = router({
         });
 
         return { success: true };
+      }),
+
+    // Get user's orders with pagination
+    getUserOrders: protectedProcedure
+      .input(z.object({
+        limit: z.number().default(20),
+        offset: z.number().default(0),
+      }))
+      .query(async ({ ctx, input }) => {
+        const { db } = await import("./db");
+        const { orders } = await import("@db/schema");
+        const { eq, desc, count } = await import("drizzle-orm");
+
+        // Get total count
+        const [{ value: total }] = await db
+          .select({ value: count() })
+          .from(orders)
+          .where(eq(orders.userId, ctx.user.id));
+
+        // Get paginated orders
+        const data = await db.query.orders.findMany({
+          where: eq(orders.userId, ctx.user.id),
+          orderBy: [desc(orders.createdAt)],
+          limit: input.limit,
+          offset: input.offset,
+        });
+
+        return {
+          data,
+          total,
+        };
+      }),
+
+    // Export payment history
+    exportPaymentHistory: protectedProcedure
+      .input(z.object({
+        format: z.enum(["csv", "pdf"]),
+        filters: z.object({
+          startDate: z.date().optional(),
+          endDate: z.date().optional(),
+          status: z.string().optional(),
+          minAmount: z.number().optional(),
+          maxAmount: z.number().optional(),
+        }).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { exportPaymentHistoryCSV, exportPaymentHistoryPDF } = await import("./services/exportService");
+
+        if (input.format === "csv") {
+          const content = await exportPaymentHistoryCSV(ctx.user.id, input.filters || {});
+          return {
+            content,
+            filename: `payment-history-${Date.now()}.csv`,
+            mimeType: "text/csv",
+          };
+        } else {
+          const htmlContent = await exportPaymentHistoryPDF(ctx.user.id, input.filters || {});
+          // For PDF, we'll return HTML and let the frontend convert it
+          return {
+            content: htmlContent,
+            filename: `payment-history-${Date.now()}.pdf`,
+            mimeType: "text/html",
+          };
+        }
       }),
   }),
 

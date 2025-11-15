@@ -24,6 +24,10 @@ import AdminMerchants from "./pages/admin/AdminMerchants";
 import DevicePayment from "./pages/DevicePayment";
 import PaymentMethods from "./pages/PaymentMethods";
 import MerchantSettings from "./pages/MerchantSettings";
+import PaymentHistory from "./pages/PaymentHistory";
+import LoginHistory from "./pages/LoginHistory";
+import LivenessTest from "./pages/LivenessTest";
+import TwoFactorSettings from "./pages/TwoFactorSettings";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -46,6 +50,10 @@ function Router() {
       <Route path={"/device-payment"} component={DevicePayment} />
       <Route path={"/payment-methods"} component={PaymentMethods} />
       <Route path={"/merchant-settings"} component={MerchantSettings} />
+      <Route path={"/payment-history"} component={PaymentHistory} />
+      <Route path={"/login-history"} component={LoginHistory} />
+      <Route path={"/liveness-test"} component={LivenessTest} />
+      <Route path={"/2fa-settings"} component={TwoFactorSettings} />
       <Route path={"/admin/users"} component={AdminUsers} />
       <Route path={"/admin/transactions"} component={AdminTransactions} />
       <Route path={"/admin/merchants"} component={AdminMerchants} />
