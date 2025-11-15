@@ -26,6 +26,7 @@ export default function ClientLogin() {
   const [emailForm, setEmailForm] = useState({
     email: "",
     password: "",
+    rememberMe: false,
   });
 
   // Email login mutation
@@ -54,7 +55,11 @@ export default function ClientLogin() {
       return;
     }
 
-    emailLoginMutation.mutate(emailForm);
+    emailLoginMutation.mutate({
+      email: emailForm.email,
+      password: emailForm.password,
+      rememberMe: emailForm.rememberMe,
+    });
   };
 
   const handleFaceLogin = () => {
@@ -139,6 +144,19 @@ export default function ClientLogin() {
                       )}
                     </Button>
                   </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={emailForm.rememberMe}
+                    onChange={(e) => setEmailForm({ ...emailForm, rememberMe: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
+                    Remember me for 30 days
+                  </Label>
                 </div>
 
                 <Button

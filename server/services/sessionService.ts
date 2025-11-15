@@ -21,7 +21,8 @@ export async function createUserSession(
   res: Response,
   userId: number,
   openId: string,
-  req: any
+  req: any,
+  rememberMe: boolean = false
 ): Promise<string> {
   // Create session token using Manus SDK
   const sessionToken = await sdk.createSessionToken(openId, {
@@ -30,9 +31,11 @@ export async function createUserSession(
 
   // Set session cookie
   const cookieOptions = getSessionCookieOptions(req);
+  const maxAge = rememberMe ? 30 * 24 * 60 * 60 * 1000 : ONE_YEAR_MS; // 30 days if remember me, else 1 year
+  
   res.cookie(COOKIE_NAME, sessionToken, {
     ...cookieOptions,
-    maxAge: ONE_YEAR_MS,
+    maxAge,
   });
 
   return sessionToken;

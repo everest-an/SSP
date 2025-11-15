@@ -40,6 +40,7 @@ import { createUserSession } from "./services/sessionService";
 import { findSimilarFaces } from "./services/faceUniquenessCheck";
 import { validateActiveLiveness } from "./services/livenessDetection";
 import { getUserFaceEmbeddings } from "./services/faceEmbeddingStorage";
+import { generatePasswordResetToken, verifyPasswordResetToken, resetPassword } from "./services/passwordResetService";
 import { COOKIE_NAME } from "@shared/const";
 import { faceRecognitionRouter, walletRouter, gestureRouter, deviceProductRouter } from "./faceAndWalletRouters";
 import { faceAuthRouter } from "./routes/faceAuth";
@@ -115,14 +116,15 @@ export const appRouter = router({
       .input(z.object({
         email: z.string().email(),
         password: z.string(),
+        rememberMe: z.boolean().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         // Authenticate user
         const user = await loginWithEmail(input.email, input.password);
 
-        // Create session
+        // Create session with rememberMe option
         const openId = `email_${user.id}_${Date.now()}`;
-        await createUserSession(ctx.res, user.id, openId, ctx.req);
+        await createUserSession(ctx.res, user.id, openId, ctx.req, input.rememberMe);
 
         return {
           success: true,
@@ -179,6 +181,57 @@ export const appRouter = router({
           user,
           confidence: bestMatch.similarity,
           livenessScore: livenessResult.score,
+        };
+      }),
+
+    // Request Password Reset
+    requestPasswordReset: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await generatePasswordResetToken(input.email);
+        
+        // Always return success to prevent email enumeration
+        if (result) {
+          console.log(`Password reset token: ${result.token}`);
+        }
+        
+        return {
+          success: true,
+          message: 'If the email exists, a password reset link has been sent.',
+        };
+      }),
+
+    // Verify Reset Token
+    verifyResetToken: publicProcedure
+      .input(z.object({
+        token: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const userId = await verifyPasswordResetToken(input.token);
+        return { valid: userId !== null };
+      }),
+
+    // Reset Password
+    resetPassword: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        newPassword: z.string().min(8),
+      }))
+      .mutation(async ({ input }) => {
+        const success = await resetPassword(input.token, input.newPassword);
+        
+        if (!success) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Invalid or expired reset token',
+          });
+        }
+        
+        return {
+          success: true,
+          message: 'Password has been reset successfully',
         };
       }),
   }),
