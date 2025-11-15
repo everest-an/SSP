@@ -44,6 +44,7 @@ export function FaceLogin() {
   );
   const loginMutation = trpc.auth.loginWithFace.useMutation();
   const utils = trpc.useUtils();
+  const meQuery = trpc.auth.me.useQuery();
 
   // Initialize MediaPipe Face Mesh
   useEffect(() => {
@@ -133,13 +134,15 @@ export function FaceLogin() {
         setStep('success');
         stopCamera();
 
-        // Refresh auth state
+        // Refresh auth state and wait for it to complete
         await utils.auth.me.invalidate();
+        // Refetch to ensure we have the latest user data
+        await meQuery.refetch();
 
-        // Redirect to dashboard after 1 second
+        // Redirect to dashboard after a short delay
         setTimeout(() => {
           setLocation('/dashboard');
-        }, 1000);
+        }, 500);
       } else {
         throw new Error('Face login failed');
       }
@@ -159,12 +162,17 @@ export function FaceLogin() {
     setProgress(0);
     setStep('intro');
     stopCamera();
+    // Reset face mesh
+    if (faceMesh) {
+      faceMesh.close();
+      setFaceMesh(null);
+    }
   };
 
   // Switch to password login
   const handleSwitchToPassword = () => {
     stopCamera();
-    setLocation('/login');
+    setLocation('/client/login');
   };
 
   return (

@@ -1,7 +1,7 @@
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
@@ -12,10 +12,12 @@ export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
     options ?? {};
   const utils = trpc.useUtils();
+  const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always consider the query stale to ensure fresh data
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({
@@ -60,6 +62,16 @@ export function useAuth(options?: UseAuthOptions) {
     logoutMutation.isPending,
   ]);
 
+  // Auto-refetch when window regains focus to ensure fresh auth state
+  useEffect(() => {
+    const handleFocus = () => {
+      meQuery.refetch();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [meQuery]);
+
+  // Handle redirect for unauthenticated users
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
     if (meQuery.isLoading || logoutMutation.isPending) return;
@@ -68,15 +80,42 @@ export function useAuth(options?: UseAuthOptions) {
     if (window.location.pathname === redirectPath) return;
 
     // Prevent redirect loop on auth pages
-    const authPages = ['/face-login', '/client/login', '/client/register', '/login', '/register', '/auth-guide'];
+    const authPages = [
+      '/face-login',
+      '/client/login',
+      '/client/register',
+      '/login',
+      '/register',
+      '/auth-guide',
+      '/forgot-password',
+      '/reset-password'
+    ];
     if (authPages.includes(window.location.pathname)) return;
 
-    window.location.href = redirectPath
+    // Don't redirect if we're still loading (first load)
+    if (meQuery.isFetching) return;
+
+    // Clear any existing timeout
+    if (redirectTimeoutRef.current) {
+      clearTimeout(redirectTimeoutRef.current);
+    }
+
+    // Add a small delay to ensure state is fully updated
+    redirectTimeoutRef.current = setTimeout(() => {
+      window.location.href = redirectPath;
+    }, 100);
+
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
   }, [
     redirectOnUnauthenticated,
     redirectPath,
     logoutMutation.isPending,
     meQuery.isLoading,
+    meQuery.isFetching,
     state.user,
   ]);
 
@@ -84,5 +123,6 @@ export function useAuth(options?: UseAuthOptions) {
     ...state,
     refresh: () => meQuery.refetch(),
     logout,
+    refetchAuth: () => utils.auth.me.invalidate(),
   };
 }

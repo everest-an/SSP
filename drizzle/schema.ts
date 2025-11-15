@@ -321,3 +321,226 @@ export type InsertFaceEnrollmentHistory = typeof faceEnrollmentHistory.$inferIns
 // Remove the old paymentMethods definition to avoid conflict
 // The new definition is in schema_payment.ts
 // export const paymentMethods = ...
+
+/**
+ * Face Verification Attempts table - tracks face verification attempts for security
+ */
+export const faceVerificationAttempts = mysqlTable("face_verification_attempts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  success: boolean("success").default(false).notNull(),
+  confidence: decimal("confidence", { precision: 5, scale: 4 }),
+  failureReason: varchar("failureReason", { length: 255 }),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  deviceFingerprint: varchar("deviceFingerprint", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FaceVerificationAttempt = typeof faceVerificationAttempts.$inferSelect;
+export type InsertFaceVerificationAttempt = typeof faceVerificationAttempts.$inferInsert;
+
+/**
+ * User Security Settings table - stores security preferences and settings
+ */
+export const userSecuritySettings = mysqlTable("user_security_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  maxPaymentAmount: int("maxPaymentAmount").default(10000).notNull(), // Max payment amount in cents
+  requireFaceVerification: boolean("requireFaceVerification").default(true).notNull(),
+  require2FA: boolean("require2FA").default(false).notNull(),
+  allowedDevices: text("allowedDevices"), // JSON array of allowed device fingerprints
+  suspiciousActivityThreshold: int("suspiciousActivityThreshold").default(5).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserSecuritySetting = typeof userSecuritySettings.$inferSelect;
+export type InsertUserSecuritySetting = typeof userSecuritySettings.$inferInsert;
+
+/**
+ * Face Match Attempts table - tracks face matching attempts for analytics
+ */
+export const faceMatchAttempts = mysqlTable("face_match_attempts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  matchedUserId: int("matchedUserId"),
+  similarity: decimal("similarity", { precision: 5, scale: 4 }),
+  success: boolean("success").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FaceMatchAttempt = typeof faceMatchAttempts.$inferSelect;
+export type InsertFaceMatchAttempt = typeof faceMatchAttempts.$inferInsert;
+
+/**
+ * Email Notifications table - stores email notification preferences and history
+ */
+export const emailNotifications = mysqlTable("email_notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: varchar("type", { length: 100 }).notNull(), // e.g., 'order_confirmation', 'payment_alert'
+  subject: varchar("subject", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  sent: boolean("sent").default(false).notNull(),
+  sentAt: timestamp("sentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EmailNotification = typeof emailNotifications.$inferSelect;
+export type InsertEmailNotification = typeof emailNotifications.$inferInsert;
+
+/**
+ * Face Index Map table - maps face profiles to vector index IDs
+ */
+export const faceIndexMap = mysqlTable("face_index_map", {
+  id: int("id").autoincrement().primaryKey(),
+  faceProfileId: int("faceProfileId").notNull().unique(),
+  vectorIndexId: varchar("vectorIndexId", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FaceIndexMap = typeof faceIndexMap.$inferSelect;
+export type InsertFaceIndexMap = typeof faceIndexMap.$inferInsert;
+
+/**
+ * Face Recognition table - stores face recognition data
+ */
+export const faceRecognition = mysqlTable("face_recognition", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  embedding: text("embedding").notNull(), // JSON array of face embedding
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FaceRecognition = typeof faceRecognition.$inferSelect;
+export type InsertFaceRecognition = typeof faceRecognition.$inferInsert;
+
+/**
+ * Wallets table - stores user wallet information
+ */
+export const wallets = mysqlTable("wallets", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  walletType: mysqlEnum("walletType", ["hosted", "non_hosted", "metamask"]).notNull(),
+  walletAddress: varchar("walletAddress", { length: 255 }),
+  balance: int("balance").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Wallet = typeof wallets.$inferSelect;
+export type InsertWallet = typeof wallets.$inferInsert;
+
+/**
+ * Wallet Transactions table - stores wallet transaction history
+ */
+export const walletTransactions = mysqlTable("wallet_transactions", {
+  id: int("id").autoincrement().primaryKey(),
+  walletId: int("walletId").notNull(),
+  transactionType: mysqlEnum("transactionType", ["deposit", "withdrawal", "payment"]).notNull(),
+  amount: int("amount").notNull(),
+  status: mysqlEnum("status", ["pending", "completed", "failed"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+export type InsertWalletTransaction = typeof walletTransactions.$inferInsert;
+
+/**
+ * Payment Methods table - stores user payment methods
+ */
+export const paymentMethods = mysqlTable("payment_methods", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  methodType: mysqlEnum("methodType", ["stripe", "wallet", "metamask"]).notNull(),
+  methodData: text("methodData"), // JSON data for payment method
+  isDefault: boolean("isDefault").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PaymentMethod = typeof paymentMethods.$inferSelect;
+export type InsertPaymentMethod = typeof paymentMethods.$inferInsert;
+
+/**
+ * Payment Transactions table - stores payment transaction history
+ */
+export const paymentTransactions = mysqlTable("payment_transactions", {
+  id: int("id").autoincrement().primaryKey(),
+  orderId: int("orderId").notNull(),
+  paymentMethodId: int("paymentMethodId").notNull(),
+  amount: int("amount").notNull(),
+  status: mysqlEnum("status", ["pending", "completed", "failed"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
+export type InsertPaymentTransaction = typeof paymentTransactions.$inferInsert;
+
+/**
+ * Consent History table - stores user consent and privacy preferences
+ */
+export const consentHistory = mysqlTable("consent_history", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  consentType: varchar("consentType", { length: 100 }).notNull(), // e.g., 'face_recognition', 'data_processing'
+  granted: boolean("granted").default(false).notNull(),
+  version: varchar("version", { length: 50 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ConsentHistory = typeof consentHistory.$inferSelect;
+export type InsertConsentHistory = typeof consentHistory.$inferInsert;
+
+/**
+ * Face Match Reviews table - stores face match review queue
+ */
+export const faceMatchReviews = mysqlTable("face_match_reviews", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  matchedUserId: int("matchedUserId"),
+  similarity: decimal("similarity", { precision: 5, scale: 4 }),
+  status: mysqlEnum("status", ["pending", "approved", "rejected", "escalated"]).default("pending").notNull(),
+  priority: mysqlEnum("priority", ["low", "medium", "high", "critical"]).default("medium").notNull(),
+  matchType: mysqlEnum("matchType", ["enrollment", "verification", "payment"]).notNull(),
+  reviewedBy: int("reviewedBy"),
+  reviewNotes: text("reviewNotes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewedAt"),
+});
+
+export type FaceMatchReview = typeof faceMatchReviews.$inferSelect;
+export type InsertFaceMatchReview = typeof faceMatchReviews.$inferInsert;
+
+/**
+ * User Privacy Settings table - stores user privacy preferences
+ */
+export const userPrivacySettings = mysqlTable("user_privacy_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  dataCollectionConsent: boolean("dataCollectionConsent").default(false).notNull(),
+  marketingConsent: boolean("marketingConsent").default(false).notNull(),
+  analyticsConsent: boolean("analyticsConsent").default(false).notNull(),
+  thirdPartySharing: boolean("thirdPartySharing").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserPrivacySetting = typeof userPrivacySettings.$inferSelect;
+export type InsertUserPrivacySetting = typeof userPrivacySettings.$inferInsert;
+
+/**
+ * Data Deletion Requests table - stores user data deletion requests
+ */
+export const dataDeletionRequests = mysqlTable("data_deletion_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  status: mysqlEnum("status", ["pending", "processing", "completed", "cancelled"]).default("pending").notNull(),
+  requestedAt: timestamp("requestedAt").defaultNow().notNull(),
+  processedAt: timestamp("processedAt"),
+  completedAt: timestamp("completedAt"),
+  reason: text("reason"),
+});
+
+export type DataDeletionRequest = typeof dataDeletionRequests.$inferSelect;
+export type InsertDataDeletionRequest = typeof dataDeletionRequests.$inferInsert;

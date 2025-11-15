@@ -76,7 +76,7 @@ class WebSocketService {
       server, 
       path: '/ws',
       // Verify origin in production
-      verifyClient: (info) => {
+      verifyClient: (info: any) => {
         // TODO: Add origin verification for production
         return true;
       }

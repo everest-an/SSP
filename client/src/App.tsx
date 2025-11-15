@@ -29,6 +29,7 @@ import LoginHistory from "./pages/LoginHistory";
 import LivenessTest from "./pages/LivenessTest";
 import TwoFactorSettings from "./pages/TwoFactorSettings";
 
+
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
@@ -48,6 +49,7 @@ function Router() {
       <Route path={"/face-enrollment"} component={FaceEnrollment} />
       <Route path={"/face-login"} component={FaceLogin} />
       <Route path={"/device-payment"} component={DevicePayment} />
+
       <Route path={"/payment-methods"} component={PaymentMethods} />
       <Route path={"/merchant-settings"} component={MerchantSettings} />
       <Route path={"/payment-history"} component={PaymentHistory} />

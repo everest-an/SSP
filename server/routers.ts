@@ -602,33 +602,21 @@ export const appRouter = router({
     create: publicProcedure
       .input(z.object({
         merchantId: z.number(),
-        deviceId: z.number(),
+        deviceId: z.number().optional(),
         customerId: z.number().optional(),
-        orderNumber: z.string(),
-        totalAmount: z.number().int().min(0),
-        currency: z.string().default("USD"),
         items: z.array(z.object({
           productId: z.number(),
-          productName: z.string(),
-          quantity: z.number().int().min(1),
-          unitPrice: z.number().int().min(0),
-          totalPrice: z.number().int().min(0),
+          quantity: z.number(),
         })),
+        paymentMethod: z.string().optional(),
+        metadata: z.record(z.any()).optional(),
       }))
       .mutation(async ({ input }) => {
-        const { items, ...orderData } = input;
-        
-        // Create order
-        const order = await createOrder(orderData);
-
-        // Create order items
-        for (const item of items) {
-          await createOrderItem({
-            orderId: order.id,
-            ...item,
-          });
-        }
-
+        const { createOrderWithItems } = await import("./services/orderService");
+        const order = await createOrderWithItems(input);
+        // Notify merchant and device about the new order
+        const { wsService } = await import("./websocket");
+        wsService.notifyOrderUpdate(order.id, { status: order.status, totalAmount: order.totalAmount }, order.merchantId, order.customerId);
         return order;
       }),
 

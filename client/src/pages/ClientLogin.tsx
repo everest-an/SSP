@@ -19,8 +19,10 @@ import { Mail, Lock, User, Scan, AlertCircle, ArrowRight, Eye, EyeOff } from "lu
 export default function ClientLogin() {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
+  const meQuery = trpc.auth.me.useQuery();
   const [activeTab, setActiveTab] = useState<"email" | "face">("email");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Email login form
   const [emailForm, setEmailForm] = useState({
@@ -33,8 +35,10 @@ export default function ClientLogin() {
   const emailLoginMutation = trpc.auth.loginWithEmail.useMutation({
     onSuccess: async (data) => {
       toast.success("Login successful!");
-      // Refresh auth state
+      // Refresh auth state and wait for it to complete
       await utils.auth.me.invalidate();
+      // Wait a moment for the query to refetch
+      await new Promise(resolve => setTimeout(resolve, 100));
       // Redirect based on user role
       if (data.user.role === "merchant" || data.user.role === "admin") {
         setLocation("/dashboard");
@@ -55,14 +59,22 @@ export default function ClientLogin() {
       return;
     }
 
-    emailLoginMutation.mutate({
-      email: emailForm.email,
-      password: emailForm.password,
-      rememberMe: emailForm.rememberMe,
-    });
+    // Reset form and clear any previous errors
+    setIsSubmitting(true);
+    emailLoginMutation.mutate(
+      {
+        email: emailForm.email,
+        password: emailForm.password,
+        rememberMe: emailForm.rememberMe,
+      },
+      {
+        onSettled: () => setIsSubmitting(false),
+      }
+    );
   };
 
   const handleFaceLogin = () => {
+    // Stop any pending mutations before navigating
     setLocation("/face-login");
   };
 
@@ -102,7 +114,7 @@ export default function ClientLogin() {
                       value={emailForm.email}
                       onChange={(e) => setEmailForm({ ...emailForm, email: e.target.value })}
                       className="pl-10"
-                      disabled={emailLoginMutation.isPending}
+                      disabled={isSubmitting || emailLoginMutation.isPending}
                     />
                   </div>
                 </div>
@@ -128,7 +140,7 @@ export default function ClientLogin() {
                       value={emailForm.password}
                       onChange={(e) => setEmailForm({ ...emailForm, password: e.target.value })}
                       className="pl-10 pr-10"
-                      disabled={emailLoginMutation.isPending}
+                      disabled={isSubmitting || emailLoginMutation.isPending}
                     />
                     <Button
                       type="button"

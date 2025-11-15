@@ -12,8 +12,8 @@
  */
 
 import { db } from "../db";
-import { faceProfiles, faceVerificationAttempts } from "../../drizzle/schema";
-import { decryptFaceEmbedding } from "./kmsEncryption";
+import { faceProfiles } from "../../drizzle/schema";
+import { decryptFaceEmbedding } from "./faceAuth/encryption";
 import { eq } from "drizzle-orm";
 
 // Thresholds for similarity matching (based on DEVDOC-FR recommendations)

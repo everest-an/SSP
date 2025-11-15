@@ -47,8 +47,7 @@ export async function checkFaceUniqueness(
     // Search for similar faces in the index
     const searchResults = await vectorIndexService.searchSimilar(
       embedding,
-      k: 5,
-      excludeId: excludeProfileId
+      { k: 5, excludeId: excludeProfileId }
     );
     
     if (searchResults.length === 0) {
@@ -260,17 +259,18 @@ export async function getFaceProfileStats() {
       .then((results) => results.length);
     
     // Get active profiles
+    const { eq } = await import('drizzle-orm');
     const activeProfiles = await db
       .select()
       .from(faceProfiles)
-      .where((t) => t.status === 'active')
+      .where(eq(faceProfiles.status, 'active'))
       .then((results) => results.length);
     
     // Get revoked profiles
     const revokedProfiles = await db
       .select()
       .from(faceProfiles)
-      .where((t) => t.status === 'revoked')
+      .where(eq(faceProfiles.status, 'revoked'))
       .then((results) => results.length);
     
     return {
