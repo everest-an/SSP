@@ -140,6 +140,48 @@ export async function getUserById(id: number) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get user: database not available");
+    return undefined;
+  }
+
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function storePasswordHash(openId: string, passwordHash: string): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot store password: database not available");
+    return;
+  }
+
+  await db.update(users).set({ passwordHash }).where(eq(users.openId, openId));
+}
+
+export async function getPasswordHash(openId: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get password: database not available");
+    return null;
+  }
+
+  const result = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.openId, openId)).limit(1);
+  return result.length > 0 ? result[0].passwordHash : null;
+}
+
+export async function updateLastSignedIn(openId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update last signed in: database not available");
+    return;
+  }
+
+  await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.openId, openId));
+}
+
 // ==================== Merchant Management ====================
 
 export async function createMerchant(merchant: InsertMerchant): Promise<Merchant> {

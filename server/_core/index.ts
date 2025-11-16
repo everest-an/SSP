@@ -3,7 +3,8 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerCognitoOAuthRoutes } from "./cognitoOAuth";
+// import { registerCognitoOAuthRoutes } from "./cognitoOAuth";
+import { registerSimpleAuthRoutes } from "./simpleAuth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -52,8 +53,8 @@ async function startServer() {
   app.use("/api/admin", adminRouter);
   app.use("/api/privacy", privacyRouter);
   app.use("/api/payment", paymentRouter);
-  // OAuth callback under /api/oauth/callback
-  registerCognitoOAuthRoutes(app);
+  // Beta version: Use simple email/password authentication
+  registerSimpleAuthRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
