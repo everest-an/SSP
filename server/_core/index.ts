@@ -63,12 +63,12 @@ async function startServer() {
       createContext,
     })
   );
-  // development mode uses Vite, production mode uses static files
+  // development mode uses Vite
+  // In beta/production, frontend is deployed separately on Vercel
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
-  } else {
-    serveStatic(app);
   }
+  // Note: No static file serving in production - frontend is on Vercel
 
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
