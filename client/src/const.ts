@@ -8,8 +8,8 @@ export const APP_LOGO =
 
 // Generate login URL at runtime so redirect URI reflects the current origin.
 export const getLoginUrl = () => {
-  const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
-  const appId = import.meta.env.VITE_APP_ID;
+  const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL || "https://ap-southeast-2q83puda94.auth.ap-southeast-2.amazoncognito.com";
+  const appId = import.meta.env.VITE_APP_ID || "3vdjmnldb67uu2jnuqt3uhaqth";
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
   const state = btoa(redirectUri);
 
