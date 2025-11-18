@@ -289,6 +289,7 @@ export function FaceLogin() {
                     playsInline
                     muted
                     className="w-full h-full object-cover"
+                    style={{ transform: 'scaleX(-1)' }}
                   />
                 </div>
                 <div className="flex justify-center">
@@ -315,6 +316,7 @@ export function FaceLogin() {
                     playsInline
                     muted
                     className="w-full h-full object-cover"
+                    style={{ transform: 'scaleX(-1)' }}
                   />
                 </div>
                 <div className="flex justify-center">

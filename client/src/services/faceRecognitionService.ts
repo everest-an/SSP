@@ -233,8 +233,8 @@ export function findBestMatchingUser(
  */
 export async function captureBestFaceFrame(
   videoElement: HTMLVideoElement,
-  duration: number = 3000, // Capture for 3 seconds
-  interval: number = 200 // Check every 200ms
+  duration: number = 2000, // Capture for 2 seconds (faster)
+  interval: number = 100 // Check every 100ms (faster detection)
 ): Promise<FaceEmbedding | null> {
   const startTime = Date.now();
   let bestEmbedding: FaceEmbedding | null = null;
@@ -273,7 +273,7 @@ export async function captureBestFaceFrame(
 export async function enrollUserFace(
   videoElement: HTMLVideoElement,
   sampleCount: number = 5,
-  interval: number = 500
+  interval: number = 300 // Faster enrollment (500ms -> 300ms)
 ): Promise<FaceEmbedding[]> {
   const embeddings: FaceEmbedding[] = [];
   let capturedCount = 0;

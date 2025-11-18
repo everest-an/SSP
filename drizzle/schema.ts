@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, tinyint, binary, blob } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, tinyint, binary, blob, date } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -54,6 +54,8 @@ export const merchants = mysqlTable("merchants", {
   phone: varchar("phone", { length: 50 }),
   email: varchar("email", { length: 320 }),
   walletAddress: varchar("walletAddress", { length: 42 }), // Ethereum wallet address for receiving crypto payments
+  kycVerified: boolean("kycVerified").default(false).notNull(), // Whether KYC verification is completed
+  kycVerifiedAt: timestamp("kycVerifiedAt"), // When KYC was verified
   status: mysqlEnum("status", ["active", "inactive", "suspended"]).default("active").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -467,11 +469,15 @@ export type InsertPaymentMethod = typeof paymentMethods.$inferInsert;
  */
 export const paymentTransactions = mysqlTable("payment_transactions", {
   id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(), // User who made the payment
   orderId: int("orderId").notNull(),
   paymentMethodId: int("paymentMethodId").notNull(),
   amount: int("amount").notNull(),
-  status: mysqlEnum("status", ["pending", "completed", "failed"]).default("pending").notNull(),
+  currency: varchar("currency", { length: 3 }).default("USD").notNull(),
+  stripePaymentIntentId: varchar("stripePaymentIntentId", { length: 255 }), // Stripe payment intent ID
+  status: mysqlEnum("status", ["pending", "completed", "failed", "refunded"]).default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
 });
 
 export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
@@ -544,3 +550,57 @@ export const dataDeletionRequests = mysqlTable("data_deletion_requests", {
 
 export type DataDeletionRequest = typeof dataDeletionRequests.$inferSelect;
 export type InsertDataDeletionRequest = typeof dataDeletionRequests.$inferInsert;
+
+/**
+ * KYC Verifications table - stores merchant identity verification data
+ */
+export const kycVerifications = mysqlTable("kyc_verifications", {
+  id: int("id").autoincrement().primaryKey(),
+  merchantId: int("merchantId").notNull(),
+  firstName: varchar("firstName", { length: 100 }).notNull(),
+  lastName: varchar("lastName", { length: 100 }).notNull(),
+  dateOfBirth: date("dateOfBirth").notNull(),
+  nationality: varchar("nationality", { length: 2 }).notNull(), // ISO country code
+  address: text("address").notNull(),
+  city: varchar("city", { length: 100 }).notNull(),
+  postalCode: varchar("postalCode", { length: 20 }).notNull(),
+  country: varchar("country", { length: 2 }).notNull(), // ISO country code
+  idNumber: varchar("idNumber", { length: 100 }), // Government ID number
+  taxId: varchar("taxId", { length: 100 }), // Tax identification number
+  status: mysqlEnum("status", ["pending", "approved", "rejected", "expired"]).default("pending").notNull(),
+  submittedAt: timestamp("submittedAt").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewedBy: int("reviewedBy"), // Admin user ID who reviewed
+  reviewNotes: text("reviewNotes"),
+  expiresAt: timestamp("expiresAt"), // KYC verification expiry date
+});
+
+export type KYCVerification = typeof kycVerifications.$inferSelect;
+export type InsertKYCVerification = typeof kycVerifications.$inferInsert;
+
+/**
+ * KYC Documents table - stores uploaded verification documents
+ */
+export const kycDocuments = mysqlTable("kyc_documents", {
+  id: int("id").autoincrement().primaryKey(),
+  verificationId: int("verificationId").notNull(),
+  documentType: mysqlEnum("documentType", [
+    "passport",
+    "drivers_license",
+    "national_id",
+    "business_license",
+    "tax_certificate",
+    "bank_statement",
+    "utility_bill",
+    "other"
+  ]).notNull(),
+  documentUrl: text("documentUrl").notNull(), // S3 or storage URL
+  documentNumber: varchar("documentNumber", { length: 100 }),
+  expiryDate: date("expiryDate"),
+  uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
+  verifiedAt: timestamp("verifiedAt"),
+  verifiedBy: int("verifiedBy"), // Admin user ID who verified
+});
+
+export type KYCDocument = typeof kycDocuments.$inferSelect;
+export type InsertKYCDocument = typeof kycDocuments.$inferInsert;

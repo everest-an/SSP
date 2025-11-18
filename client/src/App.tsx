@@ -21,6 +21,14 @@ import { FaceLogin } from "./pages/FaceLogin";
 import AdminUsers from "./pages/admin/Users";
 import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminMerchants from "./pages/admin/AdminMerchants";
+import MerchantApplication from "./pages/MerchantApplication";
+import MerchantDashboard from "./pages/MerchantDashboard";
+import MerchantApprovals from "./pages/admin/MerchantApprovals";
+import KYCVerification from "./pages/KYCVerification";
+import KYCApprovals from "./pages/admin/KYCApprovals";
+import EnhancedPaymentMethods from "./pages/EnhancedPaymentMethods";
+import CryptoWallets from "./pages/CryptoWallets";
+import ProductDetection from "./pages/ProductDetection";
 import DevicePayment from "./pages/DevicePayment";
 import PaymentMethods from "./pages/PaymentMethods";
 import MerchantSettings from "./pages/MerchantSettings";
@@ -51,6 +59,9 @@ function Router() {
       <Route path={"/device-payment"} component={DevicePayment} />
 
       <Route path={"/payment-methods"} component={PaymentMethods} />
+      <Route path={"/payment-methods-enhanced"} component={EnhancedPaymentMethods} />
+      <Route path={"/crypto-wallets"} component={CryptoWallets} />
+      <Route path={"/product-detection"} component={ProductDetection} />
       <Route path={"/merchant-settings"} component={MerchantSettings} />
       <Route path={"/payment-history"} component={PaymentHistory} />
       <Route path={"/login-history"} component={LoginHistory} />
@@ -59,6 +70,11 @@ function Router() {
       <Route path={"/admin/users"} component={AdminUsers} />
       <Route path={"/admin/transactions"} component={AdminTransactions} />
       <Route path={"/admin/merchants"} component={AdminMerchants} />
+      <Route path={"/admin/merchant-approvals"} component={MerchantApprovals} />
+      <Route path={"/merchant/apply"} component={MerchantApplication} />
+      <Route path={"/merchant/dashboard"} component={MerchantDashboard} />
+      <Route path={"/merchant/kyc"} component={KYCVerification} />
+      <Route path={"/admin/kyc-approvals"} component={KYCApprovals} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

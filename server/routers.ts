@@ -47,6 +47,11 @@ import { faceAuthRouter } from "./routes/faceAuth";
 import { adminRouter } from "./adminRouters";
 import { realtimeOrderRouter } from "./realtimeOrderRouters";
 import { paymentMethodRouter } from "./paymentMethodRouters";
+import { merchantRouter } from "./routers/merchantRouter";
+import { kycRouter } from "./routers/kycRouter";
+import { enhancedPaymentRouter } from "./routers/enhancedPaymentRouter";
+import { cryptoWalletRouter } from "./routers/cryptoWalletRouter";
+import { yoloDetectionRouter } from "./routers/yoloDetectionRouter";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -74,6 +79,11 @@ export const appRouter = router({
   deviceProduct: deviceProductRouter,
   admin: adminRouter,
   realtimeOrder: realtimeOrderRouter,
+  merchant: merchantRouter,
+  kyc: kycRouter,
+  payment: enhancedPaymentRouter,
+  cryptoWallet: cryptoWalletRouter,
+  yoloDetection: yoloDetectionRouter,
   
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),

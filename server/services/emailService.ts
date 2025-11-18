@@ -333,3 +333,129 @@ export async function sendPaymentReceiptEmail(
     text: `Payment of $${paymentDetails.amount.toFixed(2)} to ${paymentDetails.merchant} was successful. Order #${paymentDetails.orderId}`,
   });
 }
+
+/**
+ * Send merchant application notification to admins
+ */
+export async function sendMerchantApplicationNotification(
+  merchantId: number,
+  businessName: string
+): Promise<void> {
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@ssp.click';
+  
+  await sendEmail({
+    to: adminEmail,
+    subject: 'New Merchant Application - Action Required',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">New Merchant Application</h2>
+        <p>A new merchant application has been submitted and requires your review:</p>
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Business Name:</strong> ${businessName}</p>
+          <p><strong>Merchant ID:</strong> ${merchantId}</p>
+        </div>
+        <p>Please log in to the admin dashboard to review and approve/reject this application.</p>
+        <a href="${process.env.APP_URL || 'http://localhost:3000'}/admin/merchants" 
+           style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 10px;">
+          Review Application
+        </a>
+      </div>
+    `,
+    text: `New merchant application from ${businessName} (ID: ${merchantId}). Please review in the admin dashboard.`,
+  });
+}
+
+/**
+ * Send merchant approval email
+ */
+export async function sendMerchantApprovalEmail(
+  email: string,
+  businessName: string
+): Promise<void> {
+  await sendEmail({
+    to: email,
+    subject: '🎉 Your Merchant Application Has Been Approved!',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4CAF50;">Congratulations!</h2>
+        <p>Your merchant application for <strong>${businessName}</strong> has been approved.</p>
+        <div style="background-color: #f0f8f0; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">You can now:</h3>
+          <ul>
+            <li>✅ Access the merchant dashboard</li>
+            <li>✅ Add products to your catalog</li>
+            <li>✅ Manage your POS devices</li>
+            <li>✅ View sales analytics and reports</li>
+            <li>✅ Configure payment settings</li>
+          </ul>
+        </div>
+        <p>Get started by logging in to your account and switching to merchant mode.</p>
+        <a href="${process.env.APP_URL || 'http://localhost:3000'}/merchant/dashboard" 
+           style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 10px;">
+          Go to Merchant Dashboard
+        </a>
+        <p style="margin-top: 30px; color: #666;">Thank you for choosing our platform!</p>
+      </div>
+    `,
+    text: `Congratulations! Your merchant application for ${businessName} has been approved. Log in to access your merchant dashboard.`,
+  });
+}
+
+/**
+ * Send merchant rejection email
+ */
+export async function sendMerchantRejectionEmail(
+  email: string,
+  businessName: string,
+  reason: string
+): Promise<void> {
+  await sendEmail({
+    to: email,
+    subject: 'Merchant Application Update',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Merchant Application Status</h2>
+        <p>Thank you for your interest in becoming a merchant with us.</p>
+        <p>Unfortunately, we are unable to approve your application for <strong>${businessName}</strong> at this time.</p>
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <p style="margin: 0;"><strong>Reason:</strong> ${reason}</p>
+        </div>
+        <p>If you have any questions or would like to reapply in the future, please contact our support team at <a href="mailto:support@ssp.click">support@ssp.click</a>.</p>
+        <p style="margin-top: 30px; color: #666;">Best regards,<br>The SSP Team</p>
+      </div>
+    `,
+    text: `Your merchant application for ${businessName} was not approved. Reason: ${reason}. Contact support@ssp.click for more information.`,
+  });
+}
+
+/**
+ * Send merchant suspension notification
+ */
+export async function sendMerchantSuspensionEmail(
+  email: string,
+  businessName: string,
+  reason: string
+): Promise<void> {
+  await sendEmail({
+    to: email,
+    subject: '⚠️ Important: Your Merchant Account Has Been Suspended',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #d32f2f;">Account Suspension Notice</h2>
+        <p>Your merchant account for <strong>${businessName}</strong> has been suspended.</p>
+        <div style="background-color: #ffebee; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #d32f2f;">
+          <p style="margin: 0;"><strong>Reason:</strong> ${reason}</p>
+        </div>
+        <h3>During the suspension period:</h3>
+        <ul>
+          <li>❌ Your products will not be visible to customers</li>
+          <li>❌ You will not be able to process new transactions</li>
+          <li>❌ Your merchant dashboard access is limited</li>
+        </ul>
+        <p>If you believe this is an error or would like to appeal this decision, please contact our support team immediately at <a href="mailto:support@ssp.click">support@ssp.click</a>.</p>
+        <p style="margin-top: 30px; color: #666;">Best regards,<br>The SSP Team</p>
+      </div>
+    `,
+    text: `Your merchant account for ${businessName} has been suspended. Reason: ${reason}. Contact support@ssp.click to appeal.`,
+  });
+}

@@ -12,6 +12,7 @@ export interface UseCameraOptions {
   width?: number;
   height?: number;
   autoStart?: boolean;
+  mirrorVideo?: boolean; // Mirror the video display for front camera
 }
 
 export interface UseCameraResult {
@@ -31,6 +32,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraResult {
     width = 640,
     height = 480,
     autoStart = false,
+    mirrorVideo = true, // Default to true for front camera
   } = options;
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -94,9 +96,15 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraResult {
       return null;
     }
 
+    // If video is mirrored, flip the canvas back to normal
+    if (mirrorVideo && facingMode === 'user') {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+
     ctx.drawImage(video, 0, 0);
     return canvas.toDataURL('image/jpeg', 0.95);
-  }, [isStreaming]);
+  }, [isStreaming, mirrorVideo, facingMode]);
 
   const captureFrames = useCallback(async (count: number, interval: number = 100): Promise<string[]> => {
     const frames: string[] = [];

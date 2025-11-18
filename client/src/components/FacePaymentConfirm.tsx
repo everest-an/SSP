@@ -252,6 +252,7 @@ export function FacePaymentConfirm({
                   playsInline
                   muted
                   className="w-full h-full object-cover"
+                    style={{ transform: 'scaleX(-1)' }}
                 />
               </div>
               <div className="flex justify-center">
@@ -273,6 +274,7 @@ export function FacePaymentConfirm({
                   playsInline
                   muted
                   className="w-full h-full object-cover"
+                    style={{ transform: 'scaleX(-1)' }}
                 />
               </div>
               <div className="flex justify-center">
