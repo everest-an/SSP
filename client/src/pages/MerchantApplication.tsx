@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 import { trpc } from '../lib/trpc';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { Store, Building2, Phone, Mail, MapPin, CheckCircle2 } from 'lucide-react';
 
 export default function MerchantApplication() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const [formData, setFormData] = useState({
     businessName: '',
     businessType: '',
@@ -26,7 +26,7 @@ export default function MerchantApplication() {
     onSuccess: () => {
       setSuccess(true);
       setTimeout(() => {
-        navigate('/dashboard');
+        setLocation('/dashboard');
       }, 3000);
     },
     onError: (error) => {
@@ -218,7 +218,7 @@ export default function MerchantApplication() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => setLocation('/dashboard')}
               >
                 Cancel
               </Button>
