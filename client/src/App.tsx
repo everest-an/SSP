@@ -37,6 +37,7 @@ import LoginHistory from "./pages/LoginHistory";
 import LivenessTest from "./pages/LivenessTest";
 import TwoFactorSettings from "./pages/TwoFactorSettings";
 import ClientLogin from "./pages/ClientLogin";
+import ClientRegister from "./pages/ClientRegister";
 
 
 function Router() {
@@ -59,6 +60,8 @@ function Router() {
       <Route path={"/face-login"} component={FaceLogin} />
       <Route path={"/client/login"} component={ClientLogin} />
       <Route path={"/login"} component={ClientLogin} />
+      <Route path={"/client/register"} component={ClientRegister} />
+      <Route path={"/register"} component={ClientRegister} />
       <Route path={"/device-payment"} component={DevicePayment} />
 
       <Route path={"/payment-methods"} component={PaymentMethods} />
