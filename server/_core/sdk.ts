@@ -187,6 +187,7 @@ class SDKServer {
     const expirationSeconds = Math.floor((issuedAt + expiresInMs) / 1000);
     const secretKey = this.getSessionSecret();
 
+    console.log('[SDK] Signing session with payload:', payload);
     return new SignJWT({
       openId: payload.openId,
       appId: payload.appId,
