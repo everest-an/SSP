@@ -113,7 +113,7 @@ export const appRouter = router({
 
         // Create session
         const openId = `email_${user.id}_${Date.now()}`;
-        await createUserSession(ctx.res, user.id, openId, ctx.req);
+        await createUserSession(ctx.res, user.id, openId, ctx.req, false, user.name);
 
         // Send welcome email (async, don't wait)
         const { sendWelcomeEmail } = await import('./services/emailService');
@@ -140,7 +140,7 @@ export const appRouter = router({
 
         // Create session with rememberMe option
         const openId = `email_${user.id}_${Date.now()}`;
-        await createUserSession(ctx.res, user.id, openId, ctx.req, input.rememberMe);
+        await createUserSession(ctx.res, user.id, openId, ctx.req, input.rememberMe, user.name);
 
         // Record login history
         const { recordLoginAttempt } = await import('./services/loginHistoryService');

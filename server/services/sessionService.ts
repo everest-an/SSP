@@ -22,11 +22,12 @@ export async function createUserSession(
   userId: number,
   openId: string,
   req: any,
-  rememberMe: boolean = false
+  rememberMe: boolean = false,
+  userName?: string
 ): Promise<string> {
   // Create session token using Manus SDK
   const sessionToken = await sdk.createSessionToken(openId, {
-    userId: userId.toString(),
+    name: userName || `User ${userId}`,
   });
 
   // Set session cookie
