@@ -411,7 +411,19 @@ export const faceAuthRouter = router({
           sessionId,
           expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
         };
-      } catch (error) {
+      } catch (error: any) {
+        console.error('Failed to create Rekognition liveness session:', error);
+        
+        // Check if it's an AWS credentials/permissions error
+        if (error.name === 'AccessDeniedException' || 
+            error.name === 'CredentialsProviderError' ||
+            error.$metadata?.httpStatusCode === 400) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "AWS Rekognition is not configured. Please use password login or contact administrator.",
+          });
+        }
+        
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to create liveness session",

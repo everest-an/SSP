@@ -98,7 +98,9 @@ export function FaceLogin() {
     } catch (err: any) {
       console.error('Face login error:', err);
       // If AWS Rekognition is not available, skip liveness session and go directly to capture
-      if (err.message && err.message.includes('liveness session')) {
+      if (err.message && (err.message.includes('liveness session') || 
+                          err.message.includes('AWS Rekognition is not configured') ||
+                          err.message.includes('PRECONDITION_FAILED'))) {
         console.warn('AWS Rekognition not available, using simplified face login');
         setStep('capturing');
         setProgress(60);
