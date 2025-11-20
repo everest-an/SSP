@@ -110,6 +110,7 @@ export function FaceLogin() {
       } else {
         setError(cameraError || err.message || 'Failed to start face login');
         setStep('error');
+      }
     }
   };
 
