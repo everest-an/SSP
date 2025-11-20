@@ -26,6 +26,7 @@ export async function createUserSession(
   userName?: string
 ): Promise<string> {
   // Create session token using Manus SDK
+  console.log('[Session] Creating session with:', { userId, openId, userName });
   const sessionToken = await sdk.createSessionToken(openId, {
     name: userName || `User ${userId}`,
   });
