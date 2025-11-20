@@ -61,17 +61,10 @@ export function serveStatic(app: Express) {
   // Serve static files first
   app.use(express.static(distPath));
   
-  // SPA fallback - serve index.html for all non-API, non-static routes
-  app.use((req, res, next) => {
-    // Skip this middleware for API routes
+  // SPA fallback - serve index.html for all non-API routes that didn't match a static file
+  app.get('*', (req, res, next) => {
+    // Skip API routes
     if (req.path.startsWith('/api/')) {
-      return next();
-    }
-    
-    // Check if the requested file exists in dist
-    const filePath = path.join(distPath, req.path);
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      // File exists, let express.static handle it (already handled above)
       return next();
     }
     
