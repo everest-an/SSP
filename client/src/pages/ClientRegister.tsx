@@ -97,7 +97,7 @@ export default function ClientRegister() {
 
   const handleSkipFaceEnrollment = () => {
     toast.success("You can enroll your face later from your profile");
-    setLocation("/client/login");
+    setLocation("/dashboard");
   };
 
   const handleEnrollFace = () => {
