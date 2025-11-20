@@ -38,6 +38,7 @@ import LivenessTest from "./pages/LivenessTest";
 import TwoFactorSettings from "./pages/TwoFactorSettings";
 import ClientLogin from "./pages/ClientLogin";
 import ClientRegister from "./pages/ClientRegister";
+import UserProfile from "./pages/UserProfile";
 
 
 function Router() {
@@ -62,6 +63,8 @@ function Router() {
       <Route path={"/login"} component={ClientLogin} />
       <Route path={"/client/register"} component={ClientRegister} />
       <Route path={"/register"} component={ClientRegister} />
+      <Route path={"/client/profile"} component={UserProfile} />
+      <Route path={"/profile"} component={UserProfile} />
       <Route path={"/device-payment"} component={DevicePayment} />
 
       <Route path={"/payment-methods"} component={PaymentMethods} />
