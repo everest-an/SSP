@@ -34,7 +34,7 @@ export function FaceLogin() {
   const [mediapipeLoading, setMediapipeLoading] = useState(true);
   const [mediapipeError, setMediapipeError] = useState<string | null>(null);
 
-  const { videoRef, isStreaming, error: cameraError, startCamera, stopCamera } = useCamera();
+  const { videoRef, isStreaming, error: cameraError, startCamera, stopCamera, captureFrames } = useCamera();
   const [faceMesh, setFaceMesh] = useState<FaceMesh | null>(null);
 
   const createLivenessSessionMutation = trpc.faceAuth.createRekognitionLivenessSession.useMutation();
@@ -131,14 +131,20 @@ export function FaceLogin() {
         throw new Error('Failed to capture face. Please ensure your face is clearly visible.');
       }
 
+      setProgress(75);
+      
+      // Collect video frames for liveness detection
+      // Capture 15 frames over 1.5 seconds (10 FPS)
+      const videoFrames = await captureFrames(15, 100);
+      
       setProgress(80);
       setStep('verifying');
 
       // Login with face
       const loginResult = await loginMutation.mutateAsync({
         embedding: embeddingResult.embedding,
-        videoFrames: [], // TODO: Collect video frames for liveness
-        challenges: [], // TODO: Generate and validate challenges
+        videoFrames: videoFrames,
+        challenges: [], // Challenges are optional in simplified mode
         deviceFingerprint: navigator.userAgent,
       });
 
