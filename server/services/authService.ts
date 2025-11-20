@@ -58,7 +58,7 @@ export async function registerUser(data: {
   const passwordHash = await hashPassword(data.password);
 
   // Create user with temporary openId
-  const [newUser] = await db.insert(users).values({
+  const insertResult = await db.insert(users).values({
     email: data.email,
     passwordHash,
     name: data.name,
@@ -67,11 +67,13 @@ export async function registerUser(data: {
     openId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Temporary openId
   });
 
+  const userId = Number(insertResult.insertId);
+
   // Update with correct openId format: email_{userId}_{timestamp}
   await db
     .update(users)
-    .set({ openId: `email_${newUser.insertId}_${Date.now()}` })
-    .where(eq(users.id, newUser.insertId));
+    .set({ openId: `email_${userId}_${Date.now()}` })
+    .where(eq(users.id, userId));
 
   // Return user without password hash
   const [createdUser] = await db
@@ -84,7 +86,7 @@ export async function registerUser(data: {
       createdAt: users.createdAt,
     })
     .from(users)
-    .where(eq(users.id, newUser.insertId))
+    .where(eq(users.id, userId))
     .limit(1);
 
   return createdUser;
