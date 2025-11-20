@@ -39,7 +39,7 @@ export async function recordLoginAttempt(data: {
 
   // Send login alert email for successful logins from new locations (async, don't wait)
   if (data.status === 'success') {
-    const { users } = await import('@db/schema');
+    const { users } = await import('../../drizzle/schema');
     const { eq } = await import('drizzle-orm');
     
     const [user] = await db.select().from(users).where(eq(users.id, data.userId)).limit(1);
