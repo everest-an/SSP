@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
+import { APP_LOGO, APP_TITLE } from "@/const";
 import { 
   ShoppingCart, 
   Smartphone, 
@@ -57,9 +57,9 @@ export default function Home() {
                       Face Login
                     </Button>
                   </Link>
-                  <Button asChild variant="default">
-                    <a href={getLoginUrl()}>Sign In</a>
-                  </Button>
+                  <Link href="/login">
+                    <Button variant="default">Sign In</Button>
+                  </Link>
                 </div>
               )}
             </div>
@@ -87,9 +87,11 @@ export default function Home() {
                 Customers simply pick up items and walk out—no scanning, no queues, no friction.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Button asChild size="lg" className="text-base">
-                  <a href={getLoginUrl()}>Get Started <ArrowRight className="ml-2 h-5 w-5" /></a>
-                </Button>
+                <Link href="/login">
+                  <Button size="lg" className="text-base">
+                    Get Started <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
                 <Button asChild size="lg" variant="outline" className="text-base">
                   <a href="https://github.com/everest-an/SSP" target="_blank" rel="noopener noreferrer">
                     View on GitHub
@@ -271,9 +273,11 @@ export default function Home() {
               Join the future of frictionless payments. Get started with SSP today.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Button asChild size="lg" className="text-base">
-                <a href={getLoginUrl()}>Start Free Trial <ArrowRight className="ml-2 h-5 w-5" /></a>
-              </Button>
+              <Link href="/register">
+                <Button size="lg" className="text-base">
+                  Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
               <Button asChild size="lg" variant="outline" className="text-base">
                 <a href="https://github.com/everest-an/SSP" target="_blank" rel="noopener noreferrer">
                   Explore Documentation
