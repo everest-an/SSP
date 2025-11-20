@@ -67,7 +67,31 @@ export async function registerUser(data: {
     openId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Temporary openId
   });
 
-  const userId = Number(insertResult.insertId);
+  // Get userId from insertId (handle both number and string)
+  let userId: number;
+  if (typeof insertResult.insertId === 'number') {
+    userId = insertResult.insertId;
+  } else if (typeof insertResult.insertId === 'string') {
+    userId = parseInt(insertResult.insertId, 10);
+  } else if (typeof insertResult.insertId === 'bigint') {
+    userId = Number(insertResult.insertId);
+  } else {
+    // Fallback: query the user by email to get the ID
+    const [newUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, data.email))
+      .limit(1);
+    if (!newUser) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to retrieve user ID after insert',
+      });
+    }
+    userId = newUser.id;
+  }
+
+  console.log('[Auth] User created with ID:', userId);
 
   // Update with correct openId format: email_{userId}_{timestamp}
   await db
@@ -88,6 +112,13 @@ export async function registerUser(data: {
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
+
+  if (!createdUser) {
+    throw new TRPCError({
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Failed to create user',
+    });
+  }
 
   return createdUser;
 }
