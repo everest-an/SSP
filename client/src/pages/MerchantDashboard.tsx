@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 import { trpc } from '../lib/trpc';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -19,16 +19,16 @@ import {
 } from 'lucide-react';
 
 export default function MerchantDashboard() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const { data: user } = trpc.auth.me.useQuery();
   const { data: merchantProfile, isLoading, error } = trpc.merchant.getMyMerchantProfile.useQuery();
 
   useEffect(() => {
     if (!isLoading && !merchantProfile && user?.role !== 'merchant') {
       // User doesn't have a merchant account
-      navigate('/merchant/apply');
+      setLocation('/merchant/apply');
     }
-  }, [merchantProfile, isLoading, user, navigate]);
+  }, [merchantProfile, isLoading, user, setLocation]);
 
   if (isLoading) {
     return (
@@ -70,7 +70,7 @@ export default function MerchantDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate('/merchant/apply')}>
+            <Button onClick={() => setLocation('/merchant/apply')}>
               Apply for Merchant Account
             </Button>
           </CardContent>
@@ -125,7 +125,7 @@ export default function MerchantDashboard() {
             {getStatusBadge(merchantProfile.status)}
             <Button
               variant="outline"
-              onClick={() => navigate('/merchant/settings')}
+              onClick={() => setLocation('/merchant/settings')}
             >
               <Settings className="h-4 w-4 mr-2" />
               Settings
@@ -202,7 +202,7 @@ export default function MerchantDashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/products')}>
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation('/products')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
@@ -214,7 +214,7 @@ export default function MerchantDashboard() {
           </CardHeader>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/devices')}>
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation('/devices')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Smartphone className="h-5 w-5" />
@@ -226,7 +226,7 @@ export default function MerchantDashboard() {
           </CardHeader>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/orders')}>
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation('/orders')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
@@ -238,7 +238,7 @@ export default function MerchantDashboard() {
           </CardHeader>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/analytics')}>
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation('/analytics')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
@@ -250,7 +250,7 @@ export default function MerchantDashboard() {
           </CardHeader>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/transactions')}>
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation('/transactions')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
@@ -262,7 +262,7 @@ export default function MerchantDashboard() {
           </CardHeader>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/merchant/settings')}>
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setLocation('/merchant/settings')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
