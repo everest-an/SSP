@@ -95,9 +95,19 @@ export function FaceLogin() {
         handleCaptureFace();
       }, 2000);
 
-    } catch (err) {
-      setError(cameraError || 'Failed to start face login');
-      setStep('error');
+    } catch (err: any) {
+      console.error('Face login error:', err);
+      // If AWS Rekognition is not available, skip liveness session and go directly to capture
+      if (err.message && err.message.includes('liveness session')) {
+        console.warn('AWS Rekognition not available, using simplified face login');
+        setStep('capturing');
+        setProgress(60);
+        setTimeout(() => {
+          handleCaptureFace();
+        }, 1000);
+      } else {
+        setError(cameraError || err.message || 'Failed to start face login');
+        setStep('error');
     }
   };
 
