@@ -277,9 +277,15 @@ class SDKServer {
     if (isLocalLogin) {
       // For local login, extract userId from openId (format: email_{userId}_{timestamp})
       const userIdMatch = sessionUserId.match(/^email_(\d+)_/);
-      if (userIdMatch) {
-        const userId = parseInt(userIdMatch[1], 10);
-        user = await db.getUserById(userId);
+      if (!userIdMatch) {
+        console.error("[Auth] Invalid local session format:", sessionUserId);
+        throw ForbiddenError("Invalid session format");
+      }
+      const userId = parseInt(userIdMatch[1], 10);
+      user = await db.getUserById(userId);
+      if (!user) {
+        console.error("[Auth] User not found for userId:", userId);
+        throw ForbiddenError("User not found");
       }
     } else {
       // For OAuth login, use openId
