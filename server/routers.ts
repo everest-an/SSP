@@ -44,6 +44,7 @@ import { generatePasswordResetToken, verifyPasswordResetToken, resetPassword } f
 import { COOKIE_NAME } from "@shared/const";
 import { faceRecognitionRouter, walletRouter, gestureRouter, deviceProductRouter } from "./faceAndWalletRouters";
 import { faceAuthRouter } from "./routes/faceAuth";
+import { didRouter } from "./routes/didRouter";
 import { adminRouter } from "./adminRouters";
 import { realtimeOrderRouter } from "./realtimeOrderRouters";
 import { paymentMethodRouter } from "./paymentMethodRouters";
@@ -844,6 +845,9 @@ export const appRouter = router({
 
   // Payment Methods
   paymentMethod: paymentMethodRouter,
+
+  // DID (Decentralized Identity)
+  did: didRouter,
 });
 
 export type AppRouter = typeof appRouter;
