@@ -18,6 +18,7 @@ import Wallets from "./pages/Wallets";
 import FaceRegistration from "./pages/FaceRegistration";
 import { FaceEnrollment } from "./pages/FaceEnrollment";
 import { FaceLogin } from "./pages/FaceLogin";
+import { DIDRegistration } from "./pages/DIDRegistration";
 import AdminUsers from "./pages/admin/Users";
 import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminMerchants from "./pages/admin/AdminMerchants";
@@ -59,6 +60,8 @@ function Router() {
       <Route path={"/face-registration"} component={FaceRegistration} />
       <Route path={"/face-enrollment"} component={FaceEnrollment} />
       <Route path={"/face-login"} component={FaceLogin} />
+      <Route path={"/did-registration"} component={DIDRegistration} />
+      <Route path={"/did/register"} component={DIDRegistration} />
       <Route path={"/client/login"} component={ClientLogin} />
       <Route path={"/login"} component={ClientLogin} />
       <Route path={"/client/register"} component={ClientRegister} />

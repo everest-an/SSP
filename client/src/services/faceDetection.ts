@@ -504,3 +504,61 @@ export async function captureBestFrame(
     current.quality > best.quality ? current : best
   );
 }
+
+/**
+ * Extract face vector from canvas
+ * 
+ * Simplified version for DID registration
+ * Extracts a 512-dimensional face vector from a canvas element
+ */
+export async function extractFaceVector(canvas: HTMLCanvasElement): Promise<number[] | null> {
+  try {
+    // Create face mesh
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+      },
+    });
+
+    faceMesh.setOptions(FACE_MESH_CONFIG);
+
+    // Process the canvas
+    const results = await new Promise<Results>((resolve, reject) => {
+      let resolved = false;
+      
+      faceMesh.onResults((results: Results) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(results);
+        }
+      });
+
+      setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          reject(new Error('Face detection timeout'));
+        }
+      }, 5000);
+
+      faceMesh.send({ image: canvas });
+    });
+
+    // Check if face detected
+    if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+      throw new Error('No face detected');
+    }
+
+    const landmarks = results.multiFaceLandmarks[0];
+
+    // Generate 512-dim embedding from landmarks
+    const embedding = generateEmbeddingFromLandmarks(landmarks, 512);
+
+    // Close face mesh
+    faceMesh.close();
+
+    return embedding;
+  } catch (error) {
+    console.error('Failed to extract face vector:', error);
+    return null;
+  }
+}
