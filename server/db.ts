@@ -146,19 +146,25 @@ export async function createMerchant(merchant: InsertMerchant): Promise<Merchant
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Filter out fields that might not exist in older database schemas
-  // This ensures backward compatibility during migration period
-  const { kycVerified, kycVerifiedAt, walletAddress, ...baseMerchantData } = merchant;
+  // Use raw SQL to insert only the fields that exist in the current database schema
+  // This avoids Drizzle ORM generating SQL with fields that don't exist yet
+  // After running migration 0008_add_kyc_fields_to_merchants.sql, we can switch back to ORM
+  const result = await db.execute(sql`
+    INSERT INTO merchants (userId, businessName, businessType, address, phone, email, status, createdAt, updatedAt)
+    VALUES (
+      ${merchant.userId},
+      ${merchant.businessName},
+      ${merchant.businessType ?? null},
+      ${merchant.address ?? null},
+      ${merchant.phone ?? null},
+      ${merchant.email ?? null},
+      ${merchant.status ?? 'active'},
+      NOW(),
+      NOW()
+    )
+  `);
   
-  // Only include optional fields if they are explicitly provided
-  const merchantData: any = { ...baseMerchantData };
-  if (walletAddress !== undefined) merchantData.walletAddress = walletAddress;
-  if (kycVerified !== undefined) merchantData.kycVerified = kycVerified;
-  if (kycVerifiedAt !== undefined) merchantData.kycVerifiedAt = kycVerifiedAt;
-
-  const result = await db.insert(merchants).values(merchantData);
   const insertedId = Number(result[0].insertId);
-  
   const created = await db.select().from(merchants).where(eq(merchants.id, insertedId)).limit(1);
   return created[0];
 }
