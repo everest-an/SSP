@@ -146,7 +146,17 @@ export async function createMerchant(merchant: InsertMerchant): Promise<Merchant
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(merchants).values(merchant);
+  // Filter out fields that might not exist in older database schemas
+  // This ensures backward compatibility during migration period
+  const { kycVerified, kycVerifiedAt, walletAddress, ...baseMerchantData } = merchant;
+  
+  // Only include optional fields if they are explicitly provided
+  const merchantData: any = { ...baseMerchantData };
+  if (walletAddress !== undefined) merchantData.walletAddress = walletAddress;
+  if (kycVerified !== undefined) merchantData.kycVerified = kycVerified;
+  if (kycVerifiedAt !== undefined) merchantData.kycVerifiedAt = kycVerifiedAt;
+
+  const result = await db.insert(merchants).values(merchantData);
   const insertedId = Number(result[0].insertId);
   
   const created = await db.select().from(merchants).where(eq(merchants.id, insertedId)).limit(1);

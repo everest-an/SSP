@@ -60,6 +60,8 @@ export const merchantRouter = router({
       }
 
       // Create merchant with 'inactive' status (pending approval)
+      // Note: kycVerified and kycVerifiedAt fields are omitted for backward compatibility
+      // They will be set to default values by the database
       const merchant = await createMerchant({
         userId: ctx.user.id,
         businessName: input.businessName,
@@ -68,6 +70,7 @@ export const merchantRouter = router({
         phone: input.phone,
         email: input.email || ctx.user.email,
         status: 'inactive', // Requires admin approval
+        // walletAddress, kycVerified, kycVerifiedAt are optional and will use database defaults
       });
 
       // Send notification to admins (async)
