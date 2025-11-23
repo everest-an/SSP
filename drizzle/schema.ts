@@ -410,8 +410,13 @@ export type InsertFaceIndexMap = typeof faceIndexMap.$inferInsert;
 export const faceRecognition = mysqlTable("face_recognition", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
-  embedding: text("embedding").notNull(), // JSON array of face embedding
+  faceEmbedding: text("faceEmbedding").notNull(), // JSON array of face embedding
+  isActive: boolean("isActive").default(true).notNull(),
+  stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
+  paymentMethodId: varchar("paymentMethodId", { length: 255 }),
+  maxPaymentAmount: int("maxPaymentAmount").default(5000).notNull(), // in cents
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
 });
 
 export type FaceRecognition = typeof faceRecognition.$inferSelect;
