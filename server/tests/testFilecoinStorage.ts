@@ -45,7 +45,8 @@ async function testFilecoinStorage() {
 
     // 测试 4: 上传文本数据
     console.log('Test 4: Upload Text Data');
-    const testText = `Hello from SSP! Timestamp: ${new Date().toISOString()}`;
+    // 生成至少 127 字节的测试数据
+    const testText = `Hello from SSP! This is a test of Filecoin storage integration. Timestamp: ${new Date().toISOString()}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.`;
     const textMetadata: filecoinService.StorageMetadata = {
       type: filecoinService.StorageType.INVOICE,
       userId: 'test-user-001',

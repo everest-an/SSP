@@ -10,7 +10,7 @@ import { ethers } from 'ethers';
 import crypto from 'crypto';
 
 // Filecoin 网络配置
-const FILECOIN_NETWORK = process.env.FILECOIN_NETWORK || 'calibration';
+const FILECOIN_NETWORK = process.env.FILECOIN_NETWORK || 'mainnet';
 const FILECOIN_PRIVATE_KEY = process.env.FILECOIN_PRIVATE_KEY;
 
 // 存储类型枚举
@@ -294,23 +294,20 @@ export async function getAccountBalance(): Promise<{
 }> {
   try {
     const synapse = await getSynapseInstance();
-    const address = await synapse.getAddress();
+    const address = await synapse.getSigner().getAddress();
 
     // 获取 FIL 余额
-    const filBalance = await synapse.provider.getBalance(address);
+    const filBalance = await synapse.getProvider().getBalance(address);
     const fil = ethers.formatEther(filBalance);
 
     // 获取 USDFC 余额
-    const usdfcBalance = await synapse.payments.getBalance();
+    const usdfcBalance = await synapse.payments.balance();
     const usdfc = ethers.formatUnits(usdfcBalance, 6);
-
-    // 获取存储使用量
-    const storageUsage = await synapse.storage.getUsage();
 
     return {
       fil,
       usdfc,
-      storageUsage: storageUsage.toString(),
+      storageUsage: '0', // Storage usage tracking not available in current SDK version
     };
   } catch (error) {
     console.error('Failed to get account balance:', error);
@@ -391,7 +388,7 @@ export async function getNetworkInfo(): Promise<{
 }> {
   try {
     const synapse = await getSynapseInstance();
-    const address = await synapse.getAddress();
+    const address = await synapse.getSigner().getAddress();
     const balance = await getAccountBalance();
 
     return {
