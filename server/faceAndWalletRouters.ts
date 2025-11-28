@@ -60,7 +60,7 @@ export const faceRecognitionRouter = router({
   register: protectedProcedure
     .input(
       z.object({
-        faceEmbedding: z.array(z.number()),
+        embedding: z.array(z.number()),
         stripeCustomerId: z.string().optional(),
         paymentMethodId: z.string().optional(),
         maxPaymentAmount: z.number().default(5000), // Default $50
@@ -91,7 +91,7 @@ export const faceRecognitionRouter = router({
 
       const faceRec = await createFaceRecognition({
         userId: ctx.user.id,
-        faceEmbedding: JSON.stringify(input.faceEmbedding),
+        embedding: JSON.stringify(input.embedding),
         stripeCustomerId,
         paymentMethodId: input.paymentMethodId,
         maxPaymentAmount: input.maxPaymentAmount,
@@ -110,7 +110,7 @@ export const faceRecognitionRouter = router({
 
     return {
       ...faceRec,
-      faceEmbedding: JSON.parse(faceRec.faceEmbedding),
+      embedding: JSON.parse(faceRec.embedding),
     };
   }),
 
@@ -118,7 +118,7 @@ export const faceRecognitionRouter = router({
   update: protectedProcedure
     .input(
       z.object({
-        faceEmbedding: z.array(z.number()).optional(),
+        embedding: z.array(z.number()).optional(),
         paymentMethodId: z.string().optional(),
         maxPaymentAmount: z.number().optional(),
       })
@@ -133,8 +133,8 @@ export const faceRecognitionRouter = router({
       }
 
       const updateData: any = {};
-      if (input.faceEmbedding) {
-        updateData.faceEmbedding = JSON.stringify(input.faceEmbedding);
+      if (input.embedding) {
+        updateData.embedding = JSON.stringify(input.embedding);
       }
       if (input.paymentMethodId !== undefined) {
         updateData.paymentMethodId = input.paymentMethodId;
@@ -157,7 +157,7 @@ export const faceRecognitionRouter = router({
   verify: publicProcedure
     .input(
       z.object({
-        faceEmbedding: z.array(z.number()),
+        embedding: z.array(z.number()),
         threshold: z.number().default(0.6),
       })
     )
@@ -185,8 +185,8 @@ export const faceRecognitionRouter = router({
       let bestSimilarity = 0;
 
       for (const faceRec of allFaceRecs) {
-        const storedEmbedding = JSON.parse(faceRec.faceEmbedding);
-        const similarity = cosineSimilarity(input.faceEmbedding, storedEmbedding);
+        const storedEmbedding = JSON.parse(faceRec.embedding);
+        const similarity = cosineSimilarity(input.embedding, storedEmbedding);
 
         if (similarity > bestSimilarity && similarity >= input.threshold) {
           bestSimilarity = similarity;
@@ -199,7 +199,7 @@ export const faceRecognitionRouter = router({
           verified: false,
           user: null,
           wallet: null,
-          faceEmbedding: input.faceEmbedding,
+          embedding: input.embedding,
           similarity: 0,
         };
       }
@@ -231,7 +231,7 @@ export const faceRecognitionRouter = router({
         verified: true,
         user: user[0],
         wallet: wallet || null,
-        faceEmbedding: input.faceEmbedding,
+        embedding: input.embedding,
         similarity: bestSimilarity,
       };
     }),

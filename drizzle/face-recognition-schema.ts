@@ -1,4 +1,4 @@
-import { int, mysqlTable, text, timestamp, varchar, mysqlEnum } from "drizzle-orm/mysql-core";
+import { int, mysqlTable, text, timestamp, varchar, mysqlEnum, boolean } from "drizzle-orm/mysql-core";
 
 /**
  * Face embeddings table
@@ -24,7 +24,7 @@ export type InsertFaceEmbedding = typeof faceEmbeddings.$inferInsert;
 export const faceRecognition = mysqlTable("faceRecognition", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(), // Reference to users table
-  faceEmbedding: text("faceEmbedding").notNull(), // JSON array of facial feature vectors
+  embedding: text("embedding").notNull(), // JSON array of facial feature vectors
   isActive: int("isActive").default(1).notNull(), // 1 = active, 0 = inactive
   stripeCustomerId: varchar("stripeCustomerId", { length: 255 }), // Stripe customer ID for payment
   paymentMethodId: varchar("paymentMethodId", { length: 255 }), // Default payment method
