@@ -16,7 +16,7 @@ import {
   deviceProducts,
   DeviceProduct,
   InsertDeviceProduct,
-} from "../drizzle/schema";
+} from "../drizzle/face-recognition-schema";
 
 // ==================== Face Recognition ====================
 
